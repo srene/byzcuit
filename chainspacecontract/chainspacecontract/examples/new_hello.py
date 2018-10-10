@@ -1,6 +1,6 @@
-""" 
-	New Hello world contract.
 """
+    New Hello world contract.
+    """
 
 ####################################################################
 # imports
@@ -18,27 +18,27 @@ contract = ChainspaceContract('new_hello')
 
 @contract.method('init')
 def init():
-	return { 'outputs': (dumps({'type' : 'HelloToken'}),) }
+    return { 'outputs': (dumps({'type' : 'HelloToken'}),) }
 
 
 @contract.method('hello')
 def hello(inputs, reference_inputs, parameters):
-
+    
     # Checks that the first input is a token.
     if not (loads(inputs[0]) == {'type' : 'HelloToken'}):
         raise Exception("Expected a contract token as a first input.")
-
+    
     # Create a new "HelloMessage" object, just containing a message.
     HelloMessage = dumps({
-        'type' : 'HelloMessage',
-        'message' : 'Hello, world!'
-    })
-
-    # Create a label for the conversation
-    conversation = dumps({
-                         'conversationID': 1
+                         'type' : 'HelloMessage',
+                         'message' : 'Hello, world!'
                          })
 
+# Create a label for the conversation
+conversation = dumps({
+                     'conversationID': 1
+                     })
+    
     # Return both a fresh token and a HelloMessage.
     return { 'outputs': (inputs[0], HelloMessage), 'labels': (conversation,) }
 
@@ -56,11 +56,11 @@ def reply(inputs, reference_inputs, parameters):
                          'message' : loads(inputs[0])['message'] + ' Hello, again!'
                          })
 
-    # Create a new label for the conversation
-    conversation = dumps({
-                         'conversationID': 1
-                         })
-
+# Create a new label for the conversation
+conversation = dumps({
+                     'conversationID': 1
+                     })
+    
     # Return both a fresh token and a HelloMessage.
     return { 'outputs': (HelloMessage,), 'labels': (conversation,) }
 
@@ -75,24 +75,24 @@ def hello_checker(inputs, reference_inputs, parameters, outputs, labels, returns
         ret = True
         
         print('labels: ', labels)
-
+        
         # parse inputs
         ret &= reference_inputs == () and returns == () and dependencies == []
-
+        
         # check input format
         ret &= len(inputs) == 1
         ret &= len(outputs) == 2
-
+        
         token = loads(inputs[0])
         instance = loads(outputs[1])
         tags = loads(labels[0])
-
+        
         # check types
         ret &= token['type'] == 'HelloToken'
         ret &= inputs[0] == outputs[0]
         ret &= instance['type'] == 'HelloMessage'
         ret &= tags['conversationID'] == 1
-
+        
         # check content
         ret &= instance['message'] == 'Hello, world!'
         return ret
@@ -118,7 +118,7 @@ def reply_checker(inputs, reference_inputs, parameters, outputs, labels, returns
         # check types
         ret &= instance['type'] == 'HelloMessage'
         ret &= tags['conversationID'] == 1
-
+        
         # check content
         ret &= instance['message'] == loads(inputs[0])['message'] + ' Hello, again!'
         return ret
