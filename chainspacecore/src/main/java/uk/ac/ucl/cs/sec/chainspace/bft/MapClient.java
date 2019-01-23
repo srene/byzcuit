@@ -374,11 +374,6 @@ public class MapClient implements Map<String, String> {
 
 
     public String submitTransaction(Transaction t) {
-        return submitTransaction(t, submitTTimeout);
-    }
-
-
-    public String submitTransaction(Transaction t, int invokeTimeoutAsynch) {
         Set<Integer> targetShards = new HashSet<Integer>();; // The shards relevant to this transaction
         HashMap<Integer,Integer> shardToReq = new HashMap<Integer,Integer>();; // Request IDs indexed by shard IDs
         TOMMessageType reqType = TOMMessageType.UNORDERED_REQUEST; // ACCEPT_T messages require BFT consensus, so type is ordered
@@ -445,10 +440,7 @@ public class MapClient implements Map<String, String> {
             /*
                 END
              */
-
-
-
-            Thread.sleep(invokeTimeoutAsynch);//how long to wait for replies from all shards before doing cleanup and returning
+            
         } catch(Exception e){
             logMsg(strLabel,strModule,"Transaction ID "+transactionID+" experienced Exception " + e.getMessage());
         }
