@@ -684,6 +684,15 @@ public class TreeMapServer extends DefaultRecoverable {
         return false;
     }
 
+    // TODO: This function considers the shard with ID 0 to be the Transaction Manager (TM).
+    // TODO: This is hardcoded for test purposes, but ideally we should be able to include
+    // TODO: this information in the config file so TM can be designated flexibly
+    boolean isTM() {
+        if(thisShard == 0)
+            return true;
+        return false;
+    }
+
     void logMsg(String id, String module, String msg ) {
         System.out.println(id+module+msg);
     }
