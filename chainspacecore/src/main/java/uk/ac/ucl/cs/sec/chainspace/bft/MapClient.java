@@ -47,13 +47,6 @@ public class MapClient implements Map<String, String> {
     // will be always unique (as per class TomSender)
     private HashMap<String,TOMMessage> asynchReplies  = null;
 
-    // FIXME: Choose suitable timeout values
-    private int submitTTimeout = 10000; // How long should the client wait for responses from all shards
-                                        // after calling SUBMIT_T
-    private int createObjectTimeout = 0; // How long should the replica-client wait for responses from all shards
-                                         // after calling CREATE_OBJECT
-
-
     public MapClient(String shardConfigFile, int thisShard, int thisReplica) {
         this.defaultShardID = thisShard;
         // These two are set just for logging purposes
