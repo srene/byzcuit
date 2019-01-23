@@ -89,7 +89,8 @@ public class MapClient implements Map<String, String> {
         }
         int shardID = iObject.mod(new BigInteger(Integer.toString(numShards))).intValue();
         logMsg(strLabel,strModule,"Mapped object "+object+" to shard "+shardID);
-        return shardID;
+        // return shardID;
+        return 0;
     }
 
     // This function returns a unique client ID every time it is called
@@ -579,7 +580,9 @@ public class MapClient implements Map<String, String> {
                             " to shard "+defaultShardID+" for transaction "+t.id);
                     int req = clientProxyAsynch.get(shardID).invokeAsynchRequest(bs.toByteArray(), new ReplyListenerAsynchQuorum(shardID), reqType);
                     logMsg(strLabel,strModule,"Sent "+ RequestType.getReqName(msgType) + ") to shard ID " + shardID);
-                    shardToReq.put(shardID, req);
+                    shardToReq.put(shardID, req); // Bano: This assumes only one req per shard, but there could be multiple,
+                                                  //       need to change the index - maybe the index could be shardID+transactionID
+                                                  //       because there will be only one request for a shard+transaction pair
                 }
             }
 
@@ -802,6 +805,12 @@ public class MapClient implements Map<String, String> {
                                 System.out.println("ACCEPT_T [replyReceived]: Exception in printing final reply of shard ID "+shardID);
                             }
                             */
+                            // Bano: For accepted_* msgs, here on receiving each message we should check if the criteria
+                            //       for considering the transaction to be committed is satisfied, in which case we shoul
+                            //       create any objects, and update a global data structure. The client can regularly check
+                            //       this data structure to find out which transactions have been committed
+                            // Bano: For prepared_* msgs, here on receiving each message we should check if the criteria
+                            //       for sending accept_* msg to shards is satisfied
 
                             //System.out.println("ACCEPT_T: [RequestContext] clean request context id: " + context.getReqId());
                             client.cleanAsynchRequest(context.getReqId());
