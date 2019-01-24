@@ -20,7 +20,8 @@ public class RequestType {
     public static final int PREPARED_T_COMMIT = 14;
     public static final int PREPARED_T_ABORT = 15;
     public static final int ACCEPTED_T_COMMIT = 16;
-    public static final int ACCEPTED_T_ABORT = 17;;
+    public static final int ACCEPTED_T_ABORT = 17;
+    public static final int DUMP_MANY_TRANSACTIONS = 20;
 
     public static String getReqName(int n) {
         String name = "";
@@ -66,6 +67,9 @@ public class RequestType {
                 break;
             case 17:
                 name = "ACCEPTED_T_ABORT";
+                break;
+            case 20:
+                name = "DUMP_MANY_TRANSACTIONS";
                 break;
             default:
                 name = "UNKNOWN";

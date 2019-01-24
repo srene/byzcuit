@@ -114,7 +114,7 @@ public class MapClient implements Map<String, String> {
 
 
     private boolean initializeShards(String configFile) {
-        // The format pf configFile is <shardID> \t <pathToShardConfigFile>
+        // The format of configFile is <shardID> \t <pathToShardConfigFile>
 
         // Shard-to-Configuration Mapping
         shardToConfig = new HashMap<Integer, String>();
@@ -427,6 +427,9 @@ public class MapClient implements Map<String, String> {
         prepare_t(t);
     }
 
+    // ===============
+    // PREPARE_T BLOCK BEGINS
+    // ================
 
     public void prepare_t(Transaction t) {
         TOMMessageType reqType = TOMMessageType.ORDERED_REQUEST; // PREPARE_T messages require BFT consensus, so type is ordered
@@ -446,8 +449,8 @@ public class MapClient implements Map<String, String> {
                 oos.writeObject(t);
                 oos.close();
                 // PREPARE_T BFT rounds done asynchronously over all relevant shards
-                logMsg(strLabel, strModule, "Sending " + RequestType.getReqName(RequestType.PREPARE_T) +
-                            " to shard " + shardID + " for transaction " + t.id);
+                //logMsg(strLabel, strModule, "Sending " + RequestType.getReqName(RequestType.PREPARE_T) +
+                //            " to shard " + shardID + " for transaction " + t.id);
                 int req = clientProxyAsynch.get(shardID).invokeAsynchRequest(bs.toByteArray(), new ReplyListenerAsynchQuorumPrepareT(shardID, transactionID), reqType);
                 logMsg(strLabel, strModule, "Sent " + RequestType.getReqName(RequestType.PREPARE_T) + "with request ID "+ req + " to shard ID " + shardID);
                                         // Note: the req ID is unique per clientProxyAsynch
@@ -456,6 +459,129 @@ public class MapClient implements Map<String, String> {
             logMsg(strLabel, strModule, "Transaction ID " + transactionID + " experienced Exception " + e.getMessage());
         }
     }
+
+    // This class is used to track responses from replicas of a shard to PREPARE_T messages
+    //
+    private class ReplyListenerAsynchQuorumPrepareT implements ReplyListener {
+        AsynchServiceProxy client;
+        private int shardID;
+        private String transactionID;
+        private int replyQuorum; // size of the reply quorum
+        private TOMMessage replies[];
+        private int receivedReplies; // Number of received replies
+        private String strModule;
+
+
+        private Comparator<byte[]> comparator = new Comparator<byte[]>() {
+            @Override
+            public int compare(byte[] o1, byte[] o2) {
+                return Arrays.equals(o1, o2) ? 0 : -1;
+            }
+        };
+
+        private Extractor extractor = new Extractor() {
+            @Override
+            public TOMMessage extractResponse(TOMMessage[] replies, int sameContent, int lastReceived) {
+                return replies[lastReceived];
+            }
+        };
+
+        private ReplyListenerAsynchQuorumPrepareT(int shardID, String transactionID) {
+            this.shardID = shardID;
+            this.transactionID = transactionID;
+            replyQuorum = getReplyQuorum(shardID);
+            client = clientProxyAsynch.get(shardID);
+            replies = new TOMMessage[client.getViewManager().getCurrentViewN()];
+            receivedReplies = 0;
+            strModule = "ReplyListenerAsynchQuorumPrepareT: ";
+        }
+
+
+        @Override
+        public void replyReceived(RequestContext context, TOMMessage reply) {
+            //System.out.println("New reply received by client ID "+client.getProcessId()+" from  "+reply.getSender());
+            StringBuilder builder = new StringBuilder();
+            builder.append("[RequestContext] id: " + context.getReqId() + " type: " + context.getRequestType());
+            builder.append("[TOMMessage reply] sender id: " + reply.getSender() + " Hash content: " + Arrays.toString(reply.getContent()));
+            //System.out.println("ACCEPT_T: New reply received from shard ID"+shardID+": "+builder.toString());
+
+            // When to give reply to the application layer
+
+            int pos = client.getViewManager().getCurrentViewPos(reply.getSender());
+
+            if (pos >= 0) { //only consider messages from replicas
+
+                int sameContent = 1;
+
+                if (replies[pos] == null) {
+                    receivedReplies++;
+                }
+                replies[pos] = reply;
+
+                // Compare the reply just received, to the others
+                for (int i = 0; i < replies.length; i++) {
+
+                    if ((i != pos || client.getViewManager().getCurrentViewN() == 1) && replies[i] != null
+                            && (comparator.compare(replies[i].getContent(), reply.getContent()) == 0)) {
+                        sameContent++;
+                        // Shard reply received (quorum satisfied)
+                        if (sameContent >= replyQuorum) {
+                            //String key = shardToClientAsynch.get(shardID) + ";" + context.getReqId() + ";" + context.getRequestType();
+                            TOMMessage m = extractor.extractResponse(replies, sameContent, pos);
+
+                            if (m == null) {
+                                // Error handling
+                                logMsg(strLabel, strModule, "Transaction ID " + this.transactionID + "received a null response from shard "+this.shardID);
+                            } else {
+                                byte[] shardResponse = m.getContent();
+                                String strShardResponse = new String(shardResponse, Charset.forName("UTF-8"));
+
+                                logMsg(strLabel, strModule, "Shard ID " + shardID + " replied: " + strShardResponse);
+
+                                if ( strShardResponse.equals(ResponseType.PREPARED_T_COMMIT) ) {
+                                    asynchRepliesPreparedCommit.get(transactionID).add(shardID);
+                                    // Check if all the shards have replied with PREPARED_T_COMMIT
+                                    if( asynchRepliesPreparedCommit.get(transactionID).size() == targetShards.get(transactionID).size() ) {
+                                        logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been locally committed (PREPARED_T_COMMITTED)");
+                                        sequences.get(transactionID).PREPARED_T_COMMIT = true; // Update transaction sequence
+                                        asynchRepliesPreparedCommit.remove(transactionID); // no longer waiting for any replies
+
+                                        // >>>>> Send ACCEPT_T_COMMIT to relevant shards asynchronously (this will spawn new threads; see accept_t()) <<<<<<<
+                                        accept_t(transactions.get(this.transactionID), RequestType.ACCEPT_T_COMMIT);
+                                        // >>>>>>>>>>>>>><<<<<<<<<<<<<
+                                    }
+                                }
+                                else if (strShardResponse.equals(ResponseType.PREPARED_T_ABORT)
+                                        && !sequences.get(transactionID).PREPARED_T_ABORT) { // This is the first PREPARED_T_ABORT
+                                    // Unlike PREPARED_T_COMMIT (see above) here we don't wait for responses from all shards.
+                                    // PREPARED_T_ABORT from any single shard suffices to emit ACCEPT_T_ABORT
+
+                                    logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been locally aborted (PREPARED_T_ABORTED) by shard "+this.shardID);
+                                    sequences.get(transactionID).PREPARED_T_ABORT = true; // Update transaction sequence
+                                    asynchRepliesPreparedCommit.remove(transactionID); // no longer waiting for any replies
+
+                                    // >>>>> Send ACCEPT_T_ABORT to relevant shards asynchronously (this will spawn new threads; see accept_t()) <<<<<<<
+                                    accept_t(transactions.get(this.transactionID), RequestType.ACCEPT_T_ABORT);
+                                    // >>>>>>>>>>>>>><<<<<<<<<<<<<
+                                }
+                            }
+                            logMsg(strLabel, strModule, "[RequestContext] clean request to shard ID " + shardID + " with context id " + context.getReqId());
+                            client.cleanAsynchRequest(context.getReqId());
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    // ===============
+    // PREPARE_T BLOCK ENDS
+    // ================
+
+    // ===============
+    // ACCEPT_T BLOCK BEGINS
+    // ================
 
     public void accept_t(Transaction t, int msgType) {
         TOMMessageType reqType = TOMMessageType.ORDERED_REQUEST; // PREPARE_T messages require BFT consensus, so type is ordered
@@ -467,7 +593,7 @@ public class MapClient implements Map<String, String> {
             HashSet newSet = new HashSet<Integer>(); // empty shard set
             asynchRepliesAcceptedCommit.put(t.id, newSet); // No shards have replied yet with PREPARED_T_COMMIT
             // Update transaction sequence
-            if( msgType == RequestType.ACCEPTED_T_COMMIT )
+            if( msgType == RequestType.ACCEPT_T_COMMIT )
                 sequences.get(transactionID).ACCEPT_T_COMMIT = true;
             else
                 sequences.get(transactionID).ACCEPT_T_ABORT = true;
@@ -480,10 +606,10 @@ public class MapClient implements Map<String, String> {
                 oos.writeObject(t);
                 oos.close();
                 // ACCEPT_T BFT rounds done asynchronously over all relevant shards
-                logMsg(strLabel, strModule, "Sending " + RequestType.getReqName(msgType) +
-                        " to shard " + shardID + " for transaction " + t.id);
+                //logMsg(strLabel, strModule, "Sending " + RequestType.getReqName(msgType) +
+                //        " to shard " + shardID + " for transaction " + t.id);
                 int req = clientProxyAsynch.get(shardID).invokeAsynchRequest(bs.toByteArray(), new ReplyListenerAsynchQuorumAcceptT(shardID, transactionID), reqType);
-                logMsg(strLabel, strModule, "Sent " + RequestType.getReqName(RequestType.ACCEPT_T_COMMIT) + "with request ID "+ req + " to shard ID " + shardID);
+                logMsg(strLabel, strModule, "Sent " + RequestType.getReqName(msgType) + "with request ID "+ req + " to shard ID " + shardID);
                 // Note: the req ID is unique per clientProxyAsynch
             }
         } catch (Exception e) {
@@ -565,24 +691,27 @@ public class MapClient implements Map<String, String> {
 
                                 logMsg(strLabel, strModule, "Shard ID " + shardID + " replied: " + strShardResponse);
 
-                                if (strShardResponse.equals(ResponseType.ACCEPTED_T_COMMIT)) {
-                                    asynchRepliesAcceptedCommit.get(transactionID).add(shardID);
-                                    // Check if all the shards have replied with ACCEPTED_T_COMMIT
-                                    if( asynchRepliesAcceptedCommit.get(transactionID).size() == targetShards.get(transactionID).size() ) {
-                                        // Bano: TODO: Activate accept_t_commit mechanism
+                                // For ACCEPT_T_* responses, any single shard's response suffices to move to the next step
+                                if(!sequences.get(transactionID).ACCEPTED_T_ABORT && !sequences.get(transactionID).ACCEPTED_T_COMMIT)
+                                                                                 // This is the first ACCEPTED_T_* msg from any shard
+
+                                {
+                                    if (strShardResponse.equals(ResponseType.ACCEPTED_T_COMMIT) ) {
                                         logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been committed (ACCEPTED_T_COMMITTED)");
                                         sequences.get(transactionID).ACCEPTED_T_COMMIT = true; // Update transaction sequence
                                         asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
 
+                                        // Bano: TODO: Call create object here
+
+                                    } else if (strShardResponse.equals(ResponseType.ACCEPTED_T_ABORT) ) {
+                                        // cleanup
+                                        logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been aborted (ACCEPTED_T_ABORT)");
+                                        sequences.get(transactionID).ACCEPTED_T_ABORT = true; // Update transaction sequence
+                                        asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
                                     }
                                 }
-                                else if (strShardResponse.equals(ResponseType.ACCEPTED_T_ABORT)) {
-                                    // Bano: TODO: Activate accept_t_abort mechanism
-                                    // cleanup
-                                }
                             }
-                            //System.out.println("ACCEPT_T: [RequestContext] clean request context id: " + context.getReqId());
-                            logMsg(strLabel, strModule, "[RequestContext] clean request context id " + context.getReqId());
+                            logMsg(strLabel, strModule, "[RequestContext] clean request to shard ID " + shardID + " with context id " + context.getReqId());
                             client.cleanAsynchRequest(context.getReqId());
                         }
                     }
@@ -592,116 +721,9 @@ public class MapClient implements Map<String, String> {
         }
     }
 
-
-
-
-    // This class is used to track responses from replicas of a shard to PREPARE_T messages
-    //
-    private class ReplyListenerAsynchQuorumPrepareT implements ReplyListener {
-        AsynchServiceProxy client;
-        private int shardID;
-        private String transactionID;
-        private int replyQuorum; // size of the reply quorum
-        private TOMMessage replies[];
-        private int receivedReplies; // Number of received replies
-        private String strModule;
-
-
-        private Comparator<byte[]> comparator = new Comparator<byte[]>() {
-            @Override
-            public int compare(byte[] o1, byte[] o2) {
-                return Arrays.equals(o1, o2) ? 0 : -1;
-            }
-        };
-
-        private Extractor extractor = new Extractor() {
-            @Override
-            public TOMMessage extractResponse(TOMMessage[] replies, int sameContent, int lastReceived) {
-                return replies[lastReceived];
-            }
-        };
-
-        private ReplyListenerAsynchQuorumPrepareT(int shardID, String transactionID) {
-            this.shardID = shardID;
-            this.transactionID = transactionID;
-            replyQuorum = getReplyQuorum(shardID);
-            client = clientProxyAsynch.get(shardID);
-            replies = new TOMMessage[client.getViewManager().getCurrentViewN()];
-            receivedReplies = 0;
-            strModule = "ReplyListenerAsynchQuorumPrepareT: ";
-        }
-
-
-        @Override
-        public void replyReceived(RequestContext context, TOMMessage reply) {
-            //System.out.println("New reply received by client ID "+client.getProcessId()+" from  "+reply.getSender());
-            StringBuilder builder = new StringBuilder();
-            builder.append("[RequestContext] id: " + context.getReqId() + " type: " + context.getRequestType());
-            builder.append("[TOMMessage reply] sender id: " + reply.getSender() + " Hash content: " + Arrays.toString(reply.getContent()));
-            //System.out.println("ACCEPT_T: New reply received from shard ID"+shardID+": "+builder.toString());
-
-            // When to give reply to the application layer
-
-            int pos = client.getViewManager().getCurrentViewPos(reply.getSender());
-
-            if (pos >= 0) { //only consider messages from replicas
-
-                int sameContent = 1;
-
-                if (replies[pos] == null) {
-                    receivedReplies++;
-                }
-                replies[pos] = reply;
-
-                // Compare the reply just received, to the others
-                for (int i = 0; i < replies.length; i++) {
-
-                    if ((i != pos || client.getViewManager().getCurrentViewN() == 1) && replies[i] != null
-                            && (comparator.compare(replies[i].getContent(), reply.getContent()) == 0)) {
-                        sameContent++;
-                        // Shard reply received (quorum satisfied)
-                        if (sameContent >= replyQuorum) {
-                            //String key = shardToClientAsynch.get(shardID) + ";" + context.getReqId() + ";" + context.getRequestType();
-                            TOMMessage m = extractor.extractResponse(replies, sameContent, pos);
-
-                            if (m == null) {
-                                // Error handling
-                                logMsg(strLabel, strModule, "Transaction ID " + this.transactionID + "received a null response from shard "+this.shardID);
-                            } else {
-                                byte[] shardResponse = m.getContent();
-                                String strShardResponse = new String(shardResponse, Charset.forName("UTF-8"));
-
-                                logMsg(strLabel, strModule, "Shard ID " + shardID + " replied: " + strShardResponse);
-
-                                if (strShardResponse.equals(ResponseType.PREPARED_T_COMMIT)) {
-                                    asynchRepliesPreparedCommit.get(transactionID).add(shardID);
-                                    // Check if all the shards have replied with PREPARED_T_COMMIT
-                                    if( asynchRepliesPreparedCommit.get(transactionID).size() == targetShards.get(transactionID).size() ) {
-                                        // Bano: TODO: Activate accept_t_commit mechanism
-                                        logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been locally committed (PREPARED_T_COMMITTED)");
-                                        sequences.get(transactionID).PREPARED_T_COMMIT = true; // Update transaction sequence
-                                        asynchRepliesPreparedCommit.remove(transactionID); // no longer waiting for any replies
-
-                                        // Send ACCEPT_T to relevant shards
-                                        accept_t(transactions.get(this.transactionID), RequestType.ACCEPT_T_COMMIT);
-                                    }
-                                }
-                                else if (strShardResponse.equals(ResponseType.PREPARED_T_ABORT)) {
-                                    // Bano: TODO: Activate accept_t_abort mechanism
-                                    // cleanup
-                                }
-                            }
-                            //System.out.println("ACCEPT_T: [RequestContext] clean request context id: " + context.getReqId());
-                            logMsg(strLabel, strModule, "[RequestContext] clean request context id " + context.getReqId());
-                            client.cleanAsynchRequest(context.getReqId());
-                        }
-                    }
-                }
-            }
-
-        }
-    }
-
+    // ===============
+    // ACCEPT_T BLOCK ENDS
+    // ================
 
     /*
 

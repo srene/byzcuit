@@ -109,6 +109,7 @@ public class ConsoleClient {
             System.out.println("11. TEST_CORE_1");
             System.out.println("12. TEST_CORE_2");
             System.out.println("13. TEST_CORE_3");
+            System.out.println("20. DUMP_MANY_TRANSACTIONS");
 
 
             cmd = sc.nextInt();
@@ -120,7 +121,7 @@ public class ConsoleClient {
                     System.out.println("Putting value in the map");
                     System.out.println("Enter the key:");
                     key = console.nextLine();
-                    System.out.println("Enter the value:");
+                    System.out.println("Enter the value i.e. the objects status (1 for INACTIVE, 2 for LOCKED, any other number for ACTIVE):");
                     String value = console.nextLine();
                     String result = client.put(key, value);
                     System.out.println("Previous value: " + result);
@@ -174,6 +175,12 @@ public class ConsoleClient {
                     t2.print();
                     client.submitTransaction(t2);
                     System.out.println("Transaction submitted");
+                    break;
+
+                // All the tests below operate on whichever shards are relevant to the transaction
+                // The shard ID provided by user at the console is ignored
+                case RequestType.DUMP_MANY_TRANSACTIONS:
+                    int numTransactions = 10;
                     break;
 
                 case RequestType.PREPARE_T:

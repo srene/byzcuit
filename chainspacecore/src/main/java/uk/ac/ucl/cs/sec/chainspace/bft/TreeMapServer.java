@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.*;
 import java.io.BufferedReader;
@@ -31,10 +32,11 @@ public class TreeMapServer extends DefaultRecoverable {
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
     // MapClient client;
-    String strLabel;
+    String strLabel; // FIXME: Looks like this has never been set, so this is basically an empty string
     HashMap<String,String> configData;
     String shardConfigFile; // Contains info about shards and corresponding config files.
-                            // This info should be passed on the client class.
+                            // Its value will be set by loadConfiguration()
+    private HashMap<Integer, String> shardToConfig = null; // Configurations indexed by shard ID
 
     private Core core;
 
@@ -48,14 +50,16 @@ public class TreeMapServer extends DefaultRecoverable {
         }
 
         configData = new HashMap<String,String>(); // will be filled with config data by readConfiguration()
+        shardConfigFile = "";
         readConfiguration(configFile);
         if(!loadConfiguration()) {
             System.out.println("Could not load configuration. Now exiting.");
             System.exit(0);
         }
+        initializeShardConfig();
 
         table = new TreeMap<>(); // contains objects and their state
-        //sequences = new  HashMap<>(); // contains operation sequences for transactions
+        sequences = new  HashMap<>(); // contains operation sequences for transactions
         strLabel = "[s"+thisShard+"n"+ thisReplica+"] "; // This string is used in debug messages
 
 
@@ -125,7 +129,7 @@ public class TreeMapServer extends DefaultRecoverable {
                     String value = tokens[1];
                     configData.put(token, value);
                     logMsg(strLabel,strModule,"Read this line from configuration file "+line);
-                    logMsg(strLabel,strModule,"Shard ID "+token+" Replica ID "+value);
+                    logMsg(strLabel,strModule,"Token "+token+" Val "+value);
                 }
                 else
                     logMsg(strLabel,strModule,"Skipping Line # "+countLine+" in config file: Insufficient tokens");
@@ -134,6 +138,39 @@ public class TreeMapServer extends DefaultRecoverable {
             return true;
         } catch (Exception e) {
             logMsg(strLabel,strModule,"There was an exception reading configuration file "+ e.toString());
+            return false;
+        }
+
+    }
+
+    private boolean initializeShardConfig() {
+        // The format of configFile is <shardID> \t <pathToShardConfigFile>
+
+        // Shard-to-Configuration Mapping
+        shardToConfig = new HashMap<Integer, String>();
+        String strModule = "initializeShards: ";
+
+        try {
+            BufferedReader lineReader = new BufferedReader(new FileReader(shardConfigFile));
+            String line;
+            int countLine = 0;
+            int limit = 2; //Split a line into two tokens, the key and value
+
+            while ((line = lineReader.readLine()) != null) {
+                countLine++;
+                String[] tokens = line.split("\\s+", limit);
+
+                if (tokens.length == 2) {
+                    int shardID = Integer.parseInt(tokens[0]);
+                    String shardConfig = tokens[1];
+                    shardToConfig.put(shardID, shardConfig);
+                } else
+                    logMsg(strLabel, strModule, "Skipping Line # " + countLine + " in config file: Insufficient tokens");
+            }
+            lineReader.close();
+            return true;
+        } catch (Exception e) {
+            logMsg(strLabel, strModule, "There was an exception reading shard configuration file " + e.toString());
             return false;
         }
 
@@ -170,7 +207,17 @@ public class TreeMapServer extends DefaultRecoverable {
             if (reqType == RequestType.PUT) {
                 String key = ois.readUTF();
                 String value = ois.readUTF();
-                String oldValue = table.put(key, value);
+                String objectStatus = ObjectStatus.ACTIVE;
+
+                // 1 for INACTIVE, 2 for LOCKED, any other number for ACTIVE
+                int nValue = Integer.parseInt(value);
+
+                if(nValue == 1)
+                    objectStatus = ObjectStatus.INACTIVE;
+                else if( nValue== 2)
+                    objectStatus = ObjectStatus.LOCKED;
+
+                String oldValue = table.put(key, objectStatus);
                 byte[] resultBytes = null;
                 if (oldValue != null) {
                     resultBytes = oldValue.getBytes();
@@ -192,11 +239,15 @@ public class TreeMapServer extends DefaultRecoverable {
                     Transaction t = (Transaction) ois.readObject();
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
-                    String reply = "";
+                    sequences.put(t.id, new TransactionSequence()); // Create fresh sequence for this transaction
+                    // Update sequences
+                    sequences.get(t.id).PREPARE_T = true;
 
-                    reply = ResponseType.PREPARED_T_COMMIT;
+                    String reply = checkPrepareT(t);
 
-                    //reply = checkPrepareT(t);
+                    // Use for debug purposes
+                    // String reply = ResponseType.PREPARED_T_COMMIT;
+
                     logMsg(strLabel,strModule,"checkPrepare responding with "+reply);
                     //}
                     return reply.getBytes("UTF-8");
@@ -215,6 +266,9 @@ public class TreeMapServer extends DefaultRecoverable {
                     Transaction t = (Transaction) ois.readObject();
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
+                    // Update sequences
+                    sequences.get(t.id).ACCEPT_T_COMMIT = true;
+
                     //String reply = checkAcceptT(t);
                     String reply = ResponseType.ACCEPTED_T_COMMIT;
 
@@ -232,8 +286,10 @@ public class TreeMapServer extends DefaultRecoverable {
                 strModule = "ACCEPT_T_ABORT (MAIN): ";
                 try {
                     Transaction t = (Transaction) ois.readObject();
-
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
+
+                    // Update sequences
+                    sequences.get(t.id).ACCEPT_T_ABORT = true;
 
                     //String reply = checkAcceptT(t);
                     String reply = ResponseType.ACCEPTED_T_ABORT;
@@ -456,7 +512,6 @@ public class TreeMapServer extends DefaultRecoverable {
         }
     }
 
-    /*
 
     // Alberto: Implement the following functions
     // ============
@@ -471,19 +526,27 @@ public class TreeMapServer extends DefaultRecoverable {
     private void executePreparedTCommit(Transaction t){
         // TODO: Things to do when transaction is PREPARED_T_COMMIT
 
+        String strModule = "executePreparedTCommit: ";
+
         // Lock transaction input objects that were previously active
         setTransactionInputStatus(t, ObjectStatus.LOCKED, ObjectStatus.ACTIVE);
 
         sequences.get(t.id).PREPARED_T_COMMIT = true;
+        logMsg(strLabel,strModule,"done");
     }
 
     private void executeAcceptedTAbort(Transaction t){
         // TODO: Things to do when transaction is ACCEPTED_T_ABORT
+
+        String strModule = "executePreparedTAbort: ";
+
         // Unlock transaction input objects that were previously locked
 
         setTransactionInputStatus(t, ObjectStatus.ACTIVE, ObjectStatus.LOCKED);
 
         sequences.get(t.id).ACCEPTED_T_ABORT = true;
+
+        logMsg(strLabel,strModule,"done");
     }
 
     private void executeAcceptedTCommit(Transaction t){
@@ -492,26 +555,13 @@ public class TreeMapServer extends DefaultRecoverable {
         setTransactionInputStatus(t, ObjectStatus.INACTIVE);
         String strModule = "executeAcceptedTCommit";
 
-        if(isBFTInitiator()) {
-            // Create output objects (local as well as those on other shards)
-            int timeout = 0; // How long to wait for replies to be accumulated in replies.
-            // Default is no wait; just let object creation happen asynchronously.
-            logMsg(strLabel,strModule,"Creating outputs for the following transaction:");
-            t.print();
-
-
-            client.createObjects(t.outputs);
-        }
-
         sequences.get(t.id).ACCEPTED_T_COMMIT = true;
     }
-*/
 
-    /*
     private String checkPrepareT(Transaction t) {
         // TODO: Check if the transaction is malformed, return INVALID_BADTRANSACTION
+        String strModule = "checkPrepareT: ";
 
-        System.out.println("\n>> PROCESSING TRANSACTION...");
         if (t.getCsTransaction() != null) {
             System.out.println(t.getCsTransaction().getContractID());
         }
@@ -521,9 +571,11 @@ public class TreeMapServer extends DefaultRecoverable {
         String reply = ResponseType.PREPARED_T_COMMIT;
         String strErr = "Unknown";
 
+        logMsg(strLabel,strModule,"Table of objects "+table.toString());
+
         for(String key: t.inputs) {
             String readValue = table.get(key);
-            boolean managedObj = (client.mapObjectToShard(key)==thisShard);
+            boolean managedObj = (mapObjectToShard(key)==thisShard);
             if(managedObj)
                 nManagedObj++;
             if(managedObj && readValue == null) {
@@ -531,6 +583,7 @@ public class TreeMapServer extends DefaultRecoverable {
                 reply = ResponseType.PREPARED_T_ABORT;
             }
             else if(managedObj && readValue != null) {
+                logMsg(strLabel,strModule,"Input "+key+" has status "+readValue);
                 if (readValue.equals(ObjectStatus.LOCKED)) {
                     strErr = Transaction.REJECTED_LOCKEDOBJECT;
                     reply = ResponseType.PREPARED_T_ABORT;
@@ -544,15 +597,14 @@ public class TreeMapServer extends DefaultRecoverable {
             else {
                 System.out.println("\n>> DEBUG MODE");
             }
-
         }
 
         if (t.getCsTransaction() != null) { // debug compatible
-            System.out.println("\n>> RUNNING CORE...");
+            //System.out.println("\n>> RUNNING CORE...");
             try {
                 String[] out = core.processTransaction(t.getCsTransaction(), t.getStore());
-                System.out.println("\n>> PRINTING TRANSACTION'S OUTPUT...");
-                System.out.println(Arrays.toString(out));
+                //System.out.println("\n>> PRINTING TRANSACTION'S OUTPUT...");
+                //System.out.println(Arrays.toString(out));
             } catch (Exception e) {
                 strErr = e.getMessage();
                 reply = ResponseType.PREPARED_T_ABORT;
@@ -567,12 +619,18 @@ public class TreeMapServer extends DefaultRecoverable {
             reply = ResponseType.PREPARED_T_ABORT;
         }
 
-        if(reply.equals(ResponseType.PREPARED_T_ABORT))
-            System.out.println("PREPARE_T (checkPrepareT): Returning PREPARED_T_ABORT->"+strErr);
+
+        if(reply.equals(ResponseType.PREPARED_T_COMMIT)) {
+            logMsg(strLabel,strModule,"reply is PREPARED_T_COMMIT");
+            executePreparedTCommit(t);
+        }
+        else {
+            logMsg(strLabel,strModule,"reply is PREPARED_T_ABORT, Error is " + strErr);
+            executePreparedTAbort(t);
+        }
 
         return reply;
     }
-    */
 
     // ============
     // BLOCK ENDS
@@ -629,6 +687,7 @@ public class TreeMapServer extends DefaultRecoverable {
         // TODO: PREPARE_T in sequences, we can initiate one and then respond
         return ResponseType.ACCEPTED_T_ABORT;
     }
+    */
 
 
     public boolean setTransactionInputStatus(Transaction t, String status) {
@@ -636,7 +695,7 @@ public class TreeMapServer extends DefaultRecoverable {
 
         // Set status of all input objects relevant to this transaction
         for (String input : inputObjects) {
-            int shardID = client.mapObjectToShard(input);
+            int shardID = mapObjectToShard(input);
 
             if (shardID == thisShard) {
                 String prev = table.put(input, status);
@@ -651,7 +710,7 @@ public class TreeMapServer extends DefaultRecoverable {
         ArrayList<Integer> shardIDs = new ArrayList<Integer>();
         int unique = 0;
         for (String input : inputObjects) {
-            Integer shardID = new Integer(client.mapObjectToShard(input));
+            Integer shardID = new Integer(mapObjectToShard(input));
             if (!shardIDs.contains(shardID)) {
                 shardIDs.add(shardID);
                 unique++;
@@ -666,7 +725,7 @@ public class TreeMapServer extends DefaultRecoverable {
 
         // Set status of all input objects relevant to this transaction
         for (String input : inputObjects) {
-            int shardID = client.mapObjectToShard(input);
+            int shardID = mapObjectToShard(input);
 
             if (shardID == thisShard && table.get(input) != null && table.get(input).equals(prevStatus)) {
                 String prev = table.put(input, status);
@@ -675,7 +734,7 @@ public class TreeMapServer extends DefaultRecoverable {
         }
         return true;
     }
-    */
+
 
     // We don't want every replica to start a separate BFT round for
     // the same request. So within each shard, there is a designated
@@ -689,6 +748,19 @@ public class TreeMapServer extends DefaultRecoverable {
         if(thisReplica == 0)
             return true;
         return false;
+    }
+
+    public int mapObjectToShard(String object) {
+        String strModule = "mapObjectToShard";
+        BigInteger iObject = new BigInteger(object, 16);
+        int numShards = shardToConfig.size();
+        if (numShards == 0) {
+            logMsg(strLabel, strModule, "0 shards found. Now exiting");
+            System.exit(-1);
+        }
+        int shardID = iObject.mod(new BigInteger(Integer.toString(numShards))).intValue();
+        logMsg(strLabel, strModule, "Mapped object " + object + " to shard " + shardID);
+        return shardID;
     }
 
     void logMsg(String id, String module, String msg ) {
