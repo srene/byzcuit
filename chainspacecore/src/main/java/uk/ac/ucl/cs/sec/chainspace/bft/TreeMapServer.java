@@ -30,7 +30,7 @@ public class TreeMapServer extends DefaultRecoverable {
     HashMap<String, TransactionSequence> sequences; // Indexed by Transaction ID
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
-    MapClient client;
+    // MapClient client;
     String strLabel;
     HashMap<String,String> configData;
     String shardConfigFile; // Contains info about shards and corresponding config files.
@@ -55,7 +55,7 @@ public class TreeMapServer extends DefaultRecoverable {
         }
 
         table = new TreeMap<>(); // contains objects and their state
-        sequences = new  HashMap<>(); // contains operation sequences for transactions
+        //sequences = new  HashMap<>(); // contains operation sequences for transactions
         strLabel = "[s"+thisShard+"n"+ thisReplica+"] "; // This string is used in debug messages
 
 
@@ -69,7 +69,7 @@ public class TreeMapServer extends DefaultRecoverable {
             System.exit(-1);
         }
 
-        client = new MapClient(shardConfigFile, thisShard, thisReplica); // Create clients for talking with other shards
+        //client = new MapClient(shardConfigFile, thisShard, thisReplica); // Create clients for talking with other shards
     }
 
     private boolean loadConfiguration() {
@@ -193,20 +193,10 @@ public class TreeMapServer extends DefaultRecoverable {
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
                     String reply = "";
-                    /*
-                    // Check in sequences if it has been already decided
-                    if(sequences.containsKey(t.id) && sequences.get(t.id).PREPARED_T_COMMIT) {
-                        reply = ResponseType.PREPARED_T_COMMIT;
-                        logMsg(strLabel,strModule,"Found in sequences! responding with "+reply);
-                    }
-                    else if (sequences.containsKey(t.id) && sequences.get(t.id).PREPARED_T_ABORT) {
-                        reply = ResponseType.PREPARED_T_ABORT;
-                        logMsg(strLabel,strModule,"Found in sequences! responding with "+reply);
-                    }
-                    // Run checkPrepareT function only when there is no information present in local sequences
-                    else {
-                    */
-                    reply = checkPrepareT(t);
+
+                    reply = ResponseType.PREPARED_T_COMMIT;
+
+                    //reply = checkPrepareT(t);
                     logMsg(strLabel,strModule,"checkPrepare responding with "+reply);
                     //}
                     return reply.getBytes("UTF-8");
@@ -218,13 +208,16 @@ public class TreeMapServer extends DefaultRecoverable {
                 }
 
             }
+
             else if (reqType == RequestType.ACCEPT_T_COMMIT) {
                 strModule = "ACCEPT_T_COMMIT (MAIN): ";
                 try {
                     Transaction t = (Transaction) ois.readObject();
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
-                    String reply = checkAcceptT(t);
+                    //String reply = checkAcceptT(t);
+                    String reply = ResponseType.ACCEPTED_T_COMMIT;
+
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
                     return reply.getBytes("UTF-8");
@@ -242,7 +235,9 @@ public class TreeMapServer extends DefaultRecoverable {
 
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
-                    String reply = checkAcceptT(t);
+                    //String reply = checkAcceptT(t);
+                    String reply = ResponseType.ACCEPTED_T_ABORT;
+
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
                     return reply.getBytes("UTF-8");
@@ -253,6 +248,8 @@ public class TreeMapServer extends DefaultRecoverable {
                     return null;
                 }
             }
+
+            /*
             else if (reqType == RequestType.CREATE_OBJECT) {
                 strModule = "CREATE_OBJECT (MAIN): ";
                 try {
@@ -270,6 +267,7 @@ public class TreeMapServer extends DefaultRecoverable {
                 }
                 return null; // No reply expected by the caller
             }
+            */
 
             else {
                 logMsg(strLabel,strModule,"Unknown request type " + reqType);
@@ -309,6 +307,7 @@ public class TreeMapServer extends DefaultRecoverable {
 
                 return sizeInBytes;
             }
+            /*
             // The BFTInitiator sends these messages to inform the replicas about the decision of a BFT round
             else if (reqType == RequestType.PREPARED_T_COMMIT || reqType == RequestType.PREPARED_T_ABORT ||
                         reqType == RequestType.ACCEPTED_T_COMMIT || reqType == RequestType.ACCEPTED_T_ABORT) {
@@ -341,6 +340,7 @@ public class TreeMapServer extends DefaultRecoverable {
                     return null;  // No reply expected by the caller
                 }
             }
+
             else if (reqType == RequestType.TRANSACTION_SUBMIT) {
                 strModule = "SUBMIT_T (MAIN): ";
                 try {
@@ -444,6 +444,7 @@ public class TreeMapServer extends DefaultRecoverable {
                     return ResponseType.SUBMIT_T_SYSTEM_ERROR.getBytes("UTF-8");
                 }
             }
+            */
             else {
                 logMsg(strLabel,strModule,"Unknown request type " + reqType);
                 return ResponseType.SUBMIT_T_UNKNOWN_REQUEST.getBytes("UTF-8");
@@ -454,6 +455,8 @@ public class TreeMapServer extends DefaultRecoverable {
             return null;
         }
     }
+
+    /*
 
     // Alberto: Implement the following functions
     // ============
@@ -502,8 +505,9 @@ public class TreeMapServer extends DefaultRecoverable {
 
         sequences.get(t.id).ACCEPTED_T_COMMIT = true;
     }
+*/
 
-
+    /*
     private String checkPrepareT(Transaction t) {
         // TODO: Check if the transaction is malformed, return INVALID_BADTRANSACTION
 
@@ -568,11 +572,13 @@ public class TreeMapServer extends DefaultRecoverable {
 
         return reply;
     }
+    */
 
     // ============
     // BLOCK ENDS
     // ============
 
+    /*
     private String checkAcceptT(Transaction t) {
         String strModule = "checkAcceptT";
 
@@ -669,6 +675,7 @@ public class TreeMapServer extends DefaultRecoverable {
         }
         return true;
     }
+    */
 
     // We don't want every replica to start a separate BFT round for
     // the same request. So within each shard, there is a designated
@@ -680,15 +687,6 @@ public class TreeMapServer extends DefaultRecoverable {
     // TODO: from the ServiceReplica object
     boolean isBFTInitiator() {
         if(thisReplica == 0)
-            return true;
-        return false;
-    }
-
-    // TODO: This function considers the shard with ID 0 to be the Transaction Manager (TM).
-    // TODO: This is hardcoded for test purposes, but ideally we should be able to include
-    // TODO: this information in the config file so TM can be designated flexibly
-    boolean isTM() {
-        if(thisShard == 0)
             return true;
         return false;
     }
@@ -714,6 +712,7 @@ public class TreeMapServer extends DefaultRecoverable {
         }
     }
 
+
     @Override
     public byte[] getSnapshot() {
         try {
@@ -731,4 +730,5 @@ public class TreeMapServer extends DefaultRecoverable {
             return new byte[0];
         }
     }
+
 }

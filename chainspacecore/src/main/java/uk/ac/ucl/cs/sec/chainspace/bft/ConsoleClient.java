@@ -172,8 +172,8 @@ public class ConsoleClient {
 
                     System.out.println("Transaction to be added is:");
                     t2.print();
-                    result = client.submitTransaction(t2);
-                    System.out.println("Transaction status: " + result);
+                    client.submitTransaction(t2);
+                    System.out.println("Transaction submitted");
                     break;
 
                 case RequestType.PREPARE_T:
@@ -202,7 +202,12 @@ public class ConsoleClient {
                     System.out.println("Transaction to be added is:");
                     t3.print();
 
-                    byte[] reply = client.prepare_t(t3, 0);
+                    client.prepare_t(t3);
+
+                    System.out.println("Submitted prepare_t");
+
+                    /*
+                    byte[] reply = client.prepare_t(t3);
                     if(reply != null) {
                         try {
                             System.out.println("Transaction status: " + new String(reply, "UTF-8"));
@@ -213,8 +218,10 @@ public class ConsoleClient {
                     }
                     else
                         System.out.println("Transaction status: null");
+                        */
                     break;
 
+                /*
                 case RequestType.ACCEPT_T_COMMIT:
                     System.out.println("Doing ACCEPT_T_COMMIT");
                     Transaction t4 = new Transaction();
@@ -242,13 +249,8 @@ public class ConsoleClient {
                     t4.print();
 
                     String strReply = client.accept_t_commit(t4);
-                    /*
-                    if(strReply != null)
-                            System.out.println("Transaction status: " + strReply);
-                    else
-                        System.out.println("Transaction status: null");
-                        */
                     break;
+
                 case RequestType.CREATE_OBJECT:
                     System.out.println("Doing CREATE_OBJECT");
                     Transaction t5 = new Transaction();
@@ -308,6 +310,7 @@ public class ConsoleClient {
                     result = client.submitTransaction(t11);
                     System.out.println("Transaction status: " + result);
                     break;
+                    */
 /*
 
                 case 12:
