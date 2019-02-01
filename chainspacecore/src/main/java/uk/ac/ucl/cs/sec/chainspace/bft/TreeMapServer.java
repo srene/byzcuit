@@ -269,8 +269,10 @@ public class TreeMapServer extends DefaultRecoverable {
                     // Update sequences
                     sequences.get(t.id).ACCEPT_T_COMMIT = true;
 
-                    //String reply = checkAcceptT(t);
-                    String reply = ResponseType.ACCEPTED_T_COMMIT;
+                    String reply = checkAcceptT(t, RequestType.ACCEPT_T_COMMIT);
+
+                    // For debugging
+                    // String reply = ResponseType.ACCEPTED_T_COMMIT;
 
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
@@ -291,8 +293,10 @@ public class TreeMapServer extends DefaultRecoverable {
                     // Update sequences
                     sequences.get(t.id).ACCEPT_T_ABORT = true;
 
-                    //String reply = checkAcceptT(t);
-                    String reply = ResponseType.ACCEPTED_T_ABORT;
+                    String reply = checkAcceptT(t, RequestType.ACCEPT_T_ABORT);
+
+                    // For debugging
+                    // String reply = ResponseType.ACCEPTED_T_ABORT;
 
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
@@ -305,7 +309,6 @@ public class TreeMapServer extends DefaultRecoverable {
                 }
             }
 
-            /*
             else if (reqType == RequestType.CREATE_OBJECT) {
                 strModule = "CREATE_OBJECT (MAIN): ";
                 try {
@@ -323,7 +326,6 @@ public class TreeMapServer extends DefaultRecoverable {
                 }
                 return null; // No reply expected by the caller
             }
-            */
 
             else {
                 logMsg(strLabel,strModule,"Unknown request type " + reqType);
@@ -363,40 +365,16 @@ public class TreeMapServer extends DefaultRecoverable {
 
                 return sizeInBytes;
             }
-            /*
-            // The BFTInitiator sends these messages to inform the replicas about the decision of a BFT round
-            else if (reqType == RequestType.PREPARED_T_COMMIT || reqType == RequestType.PREPARED_T_ABORT ||
-                        reqType == RequestType.ACCEPTED_T_COMMIT || reqType == RequestType.ACCEPTED_T_ABORT) {
-                strModule = "broadcastBFTDecision (MAIN): ";
-                try {
-                    Transaction t = (Transaction) ois.readObject();
-
-                    logMsg(strLabel,strModule,"Received msg type "+RequestType.getReqName(reqType));
-
-                    switch(reqType) {
-                        case RequestType.PREPARED_T_COMMIT:
-                            executePreparedTCommit(t);
-                            break;
-                        case RequestType.PREPARED_T_ABORT:
-                            executePreparedTAbort(t);
-                            break;
-                        case RequestType.ACCEPTED_T_COMMIT:
-                            executeAcceptedTCommit(t);
-                            break;
-                        case RequestType.ACCEPTED_T_ABORT:
-                            executeAcceptedTAbort(t);
-                            break;
-                    }
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    logMsg(strLabel,strModule,"Exception reading data in the replica " + e.getMessage());
-                }
-                finally {
-                    return null;  // No reply expected by the caller
-                }
+            else if(reqType == RequestType.LOAD_TEST_OBJECTS_FROM_FILE) {
+                String reply="Successfully loaded objects from file.";
+                // FIXME: Hardcoded file path. Each shard will read its own object file
+                String targetFile = "ChainSpaceConfig/test_objects"+thisShard+".txt";
+                if(!readObjectsFromFile(targetFile))
+                    reply = "Failed to load objects from file: "+targetFile;
+                return reply.getBytes("UTF-8");
             }
 
+            /*
             else if (reqType == RequestType.TRANSACTION_SUBMIT) {
                 strModule = "SUBMIT_T (MAIN): ";
                 try {
@@ -513,18 +491,18 @@ public class TreeMapServer extends DefaultRecoverable {
     }
 
 
-    // Alberto: Implement the following functions
-    // ============
-    // BLOCK BEGINS
-    // ============
+
+    // Things to do when transaction is PREPARED_T_ABORT
     private void executePreparedTAbort(Transaction t){
-        // TODO: Things to do when transaction is PREPARED_T_ABORT
+        String strModule = "executePreparedTAbort: ";
 
         sequences.get(t.id).PREPARED_T_ABORT = true;
+
+        logMsg(strLabel,strModule,"done");
     }
 
+    // Things to do when transaction is PREPARED_T_COMMIT
     private void executePreparedTCommit(Transaction t){
-        // TODO: Things to do when transaction is PREPARED_T_COMMIT
 
         String strModule = "executePreparedTCommit: ";
 
@@ -532,16 +510,16 @@ public class TreeMapServer extends DefaultRecoverable {
         setTransactionInputStatus(t, ObjectStatus.LOCKED, ObjectStatus.ACTIVE);
 
         sequences.get(t.id).PREPARED_T_COMMIT = true;
+
         logMsg(strLabel,strModule,"done");
     }
 
+    // Things to do when transaction is ACCEPTED_T_ABORT
     private void executeAcceptedTAbort(Transaction t){
-        // TODO: Things to do when transaction is ACCEPTED_T_ABORT
 
         String strModule = "executePreparedTAbort: ";
 
         // Unlock transaction input objects that were previously locked
-
         setTransactionInputStatus(t, ObjectStatus.ACTIVE, ObjectStatus.LOCKED);
 
         sequences.get(t.id).ACCEPTED_T_ABORT = true;
@@ -549,15 +527,20 @@ public class TreeMapServer extends DefaultRecoverable {
         logMsg(strLabel,strModule,"done");
     }
 
+    // Things to do when transaction is ACCEPTED_T_COMMIT
     private void executeAcceptedTCommit(Transaction t){
-        // TODO: Things to do when transaction is ACCEPTED_T_COMMIT
-        // Inactivate transaction input objects
-        setTransactionInputStatus(t, ObjectStatus.INACTIVE);
+
         String strModule = "executeAcceptedTCommit";
 
+        // Inactivate transaction input objects
+        setTransactionInputStatus(t, ObjectStatus.INACTIVE);
+
         sequences.get(t.id).ACCEPTED_T_COMMIT = true;
+
+        logMsg(strLabel,strModule,"done");
     }
 
+    // Things to check when processing PREPARE_T
     private String checkPrepareT(Transaction t) {
         // TODO: Check if the transaction is malformed, return INVALID_BADTRANSACTION
         String strModule = "checkPrepareT: ";
@@ -632,62 +615,40 @@ public class TreeMapServer extends DefaultRecoverable {
         return reply;
     }
 
-    // ============
-    // BLOCK ENDS
-    // ============
 
-    /*
-    private String checkAcceptT(Transaction t) {
+    // Things to check when processing ACCEPT_T
+    private String checkAcceptT(Transaction t, int msgType) {
         String strModule = "checkAcceptT";
 
-        // FIXME: Choose suitable timeout values
-        int minWait = 1; // First wait will be minWait long
-        int timeoutIncrement = 2; // subsequent wait will proceed in timeoutIncrement until all shards reply
-        int maxWait = 250; // time out if waitedSoFar exceeds maxWait
+        String reply = ResponseType.ACCEPTED_T_ABORT;
+        String strErr = "Unknown";
 
-        boolean firstAttempt = true;
-        int waitedSoFar = 0;
-
-        if (sequences.containsKey(t.id) && !sequences.get(t.id).PREPARED_T_COMMIT &&
-                !sequences.get(t.id).PREPARED_T_ABORT)
-            logMsg(strLabel,strModule,"Waiting for PREPARED_T_* to be sequenced " +
-                    " upon receiving ACCEPT_T.");
-
-        try {
-            while(waitedSoFar < maxWait) {
-                if (sequences.containsKey(t.id) && (sequences.get(t.id).PREPARED_T_COMMIT ||
-                        sequences.get(t.id).PREPARED_T_ABORT)) {
-                    logMsg(strLabel,strModule,"Sequenced PREPARED_T_* upon receiving ACCEPT_T" +
-                            "after waiting for "+waitedSoFar);
-                    break;
-                }
-
-                if (firstAttempt) {
-                    Thread.sleep(minWait);
-                    waitedSoFar += minWait;
-                    firstAttempt = false;
-                }
-                else {
-                    Thread.sleep(timeoutIncrement);
-                    waitedSoFar += timeoutIncrement;
-                }
-
-                if (waitedSoFar > maxWait) // We are about to exit this loop
-                    logMsg(strLabel, strModule, "Timed out waiting for PREPARED_T_* to be sequenced " +
-                            " upon receiving ACCEPT_T.");
+        if( msgType == RequestType.ACCEPT_T_COMMIT) {
+            if(!sequences.get(t.id).PREPARED_T_COMMIT) {
+                strErr = Transaction.NO_PREPARED_T_COMMIT;
+            }
+            else
+                reply = ResponseType.ACCEPTED_T_COMMIT;
+        }
+        else {
+            if(!sequences.get(t.id).PREPARED_T_COMMIT && !sequences.get(t.id).PREPARED_T_ABORT) {
+                strErr = Transaction.NO_PREPARED_T;
             }
         }
-        catch(Exception e) {
-                logMsg(strLabel,strModule,"Exception making thread sleep "+e.toString());
+
+        // Any other checks to be included here
+
+        if(reply.equals(ResponseType.ACCEPTED_T_COMMIT)) {
+            logMsg(strLabel,strModule,"reply is ACCEPTED_T_COMMIT");
+            executeAcceptedTCommit(t);
+        }
+        else {
+            logMsg(strLabel,strModule,"reply is ACCEPTED_T_ABORT, Error is " + strErr);
+            executeAcceptedTAbort(t);
         }
 
-        if(sequences.containsKey(t.id) && sequences.get(t.id).PREPARED_T_COMMIT)
-            return ResponseType.ACCEPTED_T_COMMIT;
-        // TODO: Optimization: If we hear about an ACCEPT_T from which we don't have
-        // TODO: PREPARE_T in sequences, we can initiate one and then respond
-        return ResponseType.ACCEPTED_T_ABORT;
+        return reply;
     }
-    */
 
 
     public boolean setTransactionInputStatus(Transaction t, String status) {
@@ -763,9 +724,49 @@ public class TreeMapServer extends DefaultRecoverable {
         return shardID;
     }
 
-    void logMsg(String id, String module, String msg ) {
+    void logMsg(String id, String module, String msg) {
         System.out.println(id+module+msg);
     }
+
+    public Boolean readObjectsFromFile(String fileObjects) {
+        String strModule = "readObjectsFromFile: ";
+        String strLabel = "";
+        logMsg(strLabel,strModule,"Reading file");
+        try {
+            BufferedReader lineReader = new BufferedReader(new FileReader(fileObjects));
+            String line;
+            int countLine = 0;
+            int limit = 2; //Split a line into two tokens delimited by spaces:
+            // (1) object
+            // (2) status (1 means INACTIVE, 2 means LOCKED, anything else means ACTIVE)
+
+            while ((line = lineReader.readLine()) != null) {
+                countLine++;
+                String[] tokens = line.split("\\s+",limit);
+
+                if(tokens.length == 2) {
+                    String object = tokens[0];
+                    String status = tokens[1];
+
+                    // For debugging
+                    logMsg(strLabel,strModule,"Read this line from configuration file: "+line);
+                    logMsg(strLabel,strModule,"object is: "+object);
+                    logMsg(strLabel,strModule,"status is: "+status);
+
+                    // Add the object to the table
+                    table.put(object,status);
+                }
+                else
+                    logMsg(strLabel,strModule,"Skipping Line # "+countLine+" in config file: Insufficient tokens");
+            }
+            lineReader.close();
+        } catch (Exception e) {
+            logMsg(strLabel,strModule,"There was an exception reading the file "+ e.toString());
+            return false;
+        }
+        return true;
+    }
+
 
     @Override
     public void installSnapshot(byte[] state) {

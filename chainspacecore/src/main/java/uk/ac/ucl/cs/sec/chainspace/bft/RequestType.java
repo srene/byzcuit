@@ -21,7 +21,8 @@ public class RequestType {
     public static final int PREPARED_T_ABORT = 15;
     public static final int ACCEPTED_T_COMMIT = 16;
     public static final int ACCEPTED_T_ABORT = 17;
-    public static final int DUMP_MANY_TRANSACTIONS = 20;
+    public static final int LOAD_TEST_OBJECTS_FROM_FILE = 20;
+    public static final int SUBMIT_TRANSACTIONS_FROM_FILE = 21;
 
     public static String getReqName(int n) {
         String name = "";

@@ -28,6 +28,8 @@ public class Transaction implements Serializable {
     public static final String INVALID_NOMANAGEDOBJECT = "Invalid: None of the input object(s) is managed by this shard.";
     public static final String REJECTED_LOCKEDOBJECT = "Rejected: Input object(s) is locked. ";
     public static final String INVALID_INACTIVEOBJECT = "Invalid: Input object(s) is inactive.";
+    public static final String NO_PREPARED_T_COMMIT = "Invalid: No matching PREPARED_T_COMMIT in history.";
+    public static final String NO_PREPARED_T = "Invalid: No matching PREPARED_T_* in history.";
     public static final String INVALID_BADTRANSACTION = "Invalid: Malformed transaction.";
 
     public Transaction() {

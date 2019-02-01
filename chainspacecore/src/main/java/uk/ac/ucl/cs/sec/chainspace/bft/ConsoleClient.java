@@ -109,7 +109,8 @@ public class ConsoleClient {
             System.out.println("11. TEST_CORE_1");
             System.out.println("12. TEST_CORE_2");
             System.out.println("13. TEST_CORE_3");
-            System.out.println("20. DUMP_MANY_TRANSACTIONS");
+            System.out.println("20. LOAD_TEST_OBJECTS_FROM_FILE");
+            System.out.println("21. SEND_TRANSACTIONS_FROM_FILE");
 
 
             cmd = sc.nextInt();
@@ -177,11 +178,20 @@ public class ConsoleClient {
                     System.out.println("Transaction submitted");
                     break;
 
+                case RequestType.SUBMIT_TRANSACTIONS_FROM_FILE:
+                    System.out.println("Sending transactions to submit from file");
+                    System.out.println("Enter the fileID (hit `Enter' for default):");
+                    String fileID = console.nextLine();
+                    client.sendTransactionsFromFile(fileID);
+                    break;
+
+                case RequestType.LOAD_TEST_OBJECTS_FROM_FILE:
+                    System.out.println("Loading test objects from file");
+                    client.loadObjectsFromFile();
+                    break;
+
                 // All the tests below operate on whichever shards are relevant to the transaction
                 // The shard ID provided by user at the console is ignored
-                case RequestType.DUMP_MANY_TRANSACTIONS:
-                    int numTransactions = 10;
-                    break;
 
                 case RequestType.PREPARE_T:
                     System.out.println("Doing PREPARE_T");
@@ -228,7 +238,6 @@ public class ConsoleClient {
                         */
                     break;
 
-                /*
                 case RequestType.ACCEPT_T_COMMIT:
                     System.out.println("Doing ACCEPT_T_COMMIT");
                     Transaction t4 = new Transaction();
@@ -255,7 +264,7 @@ public class ConsoleClient {
                     System.out.println("Transaction to be added is:");
                     t4.print();
 
-                    String strReply = client.accept_t_commit(t4);
+                    client.accept_t(t4, RequestType.ACCEPT_T_COMMIT);
                     break;
 
                 case RequestType.CREATE_OBJECT:
@@ -286,6 +295,8 @@ public class ConsoleClient {
 
                     client.createObjects(t5.outputs);
                     break;
+
+                    /*
 
                 case 11:
                     System.out.println("\n>> PREPARING TO SEND TRANSACTION...\n");

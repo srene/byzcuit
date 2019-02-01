@@ -311,14 +311,101 @@ public class MapClient implements Map<String, String> {
         }
     }
 
+    // Tells the shards to read objects from a file. Each shard will read its own object file
+    // File path has been hardcoded to: "ChainSpaceConfig/test_objects"+thisShard+".txt";
+    public void loadObjectsFromFile() {
+        String strModule = "loadTransactionsFromFile (DRIVER)";
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(out);
+
+            oos.writeInt(RequestType.LOAD_TEST_OBJECTS_FROM_FILE);
+            oos.close();
+            logMsg(strLabel, strModule, "Sending request to shard "+defaultShardID+" to load objects from file");
+            byte[] reply = clientProxy.get(defaultShardID).invokeUnordered(out.toByteArray());
+            if (reply != null) {
+                logMsg(strLabel, strModule, "Server reply is: "+new String(reply));
+            }
+            else
+                logMsg(strLabel, strModule, "Null reply");
+
+        } catch (IOException ioe) {
+            logMsg(strLabel, strModule, "Exception loading objects from file" + ioe.getMessage());
+        }
+    }
+
+    // This is a client side function, for submitting transactions read from a file
+    public Boolean sendTransactionsFromFile(String fileID) {
+        // FixMe: Hardcoded file path: "ChainSpaceClientConfig/test_transactions"+fileID+".txt"
+        String fileTransactions = "ChainSpaceClientConfig/test_transactions"+fileID+".txt";
+
+        String strModule = "sendTransactionsFromFile: ";
+        String strLabel = "";
+        logMsg(strLabel,strModule,"Reading transactions");
+
+        try {
+            BufferedReader lineReader = new BufferedReader(new FileReader(fileTransactions));
+            String line;
+            int countLine = 0;
+            int limit = 3; //Split a line into three tokens delimited by spaces:
+            // (1) transaction ID, (2) inputs (delimited by ";"), (3) outputs (delimited by ";")
+
+            while ((line = lineReader.readLine()) != null) {
+                countLine++;
+                String[] tokens = line.split("\\s+",limit);
+
+                Transaction t = new Transaction();
+
+                if(tokens.length == 3) { //Split a line into three tokens delimited by spaces:
+                    // (1) transaction ID
+                    // (2) input objects (delimited by ";")
+                    // (3) output objects (delimited by ";")
+                    String transactionID = tokens[0];
+                    String inputs = tokens[1];
+                    String outputs = tokens[2];
+
+                    logMsg(strLabel,strModule,"Read this line from thefile: "+line);
+
+                    // Read transaction ID
+                    t.id = transactionID;
+                    logMsg(strLabel,strModule,"Transaction ID is: "+transactionID);
+
+                    // Read transaction inputs
+                    String[] tokens_inputs = inputs.split(";");
+                    for(String eachInput: tokens_inputs) {
+                        t.inputs.add(eachInput);
+                        logMsg(strLabel,strModule,"Input is: : "+eachInput);
+                    }
+
+                    // Read transaction outputs
+                    String[] tokens_outputs = outputs.split(";");
+                    for(String eachOutput: tokens_outputs) {
+                        t.outputs.add(eachOutput);
+                        logMsg(strLabel,strModule,"Output is: : "+eachOutput);
+                    }
+
+                    // Submit transaction
+                    submitTransaction(t);
+                }
+                else
+                    logMsg(strLabel,strModule,"Skipping Line # "+countLine+" in file: Insufficient tokens");
+            }
+            lineReader.close();
+            return true;
+        } catch (Exception e) {
+            logMsg(strLabel,strModule,"There was an exception reading configuration file "+ e.toString());
+            return false;
+        }
+
+    }
 
     public void createObjects(List<String> outputObjects) {
-        TOMMessageType reqType = TOMMessageType.ORDERED_REQUEST; // ACCEPT_T messages require BFT consensus, so type is ordered
-        boolean earlyTerminate = false;
+        TOMMessageType reqType = TOMMessageType.ORDERED_REQUEST; // CREATE_OBJECT messages require BFT consensus, so type is ordered
+
         String strModule = "CREATE_OBJECT (DRIVER): ";
 
         try {
-            HashMap<Integer, ArrayList<String>> shardToObjects = new HashMap<>(); // Objects managed by a shard
+            HashMap<Integer, ArrayList<String>> shardToObjects = new HashMap<>(); // Output objects managed by a shard
 
             // Group objects by the managing shard
             for (String output : outputObjects) {
@@ -558,7 +645,8 @@ public class MapClient implements Map<String, String> {
 
                                     logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been locally aborted (PREPARED_T_ABORTED) by shard "+this.shardID);
                                     sequences.get(transactionID).PREPARED_T_ABORT = true; // Update transaction sequence
-                                    asynchRepliesPreparedCommit.remove(transactionID); // no longer waiting for any replies
+
+                                    //asynchRepliesPreparedCommit.remove(transactionID); // no longer waiting for any replies
 
                                     // >>>>> Send ACCEPT_T_ABORT to relevant shards asynchronously (this will spawn new threads; see accept_t()) <<<<<<<
                                     accept_t(transactions.get(this.transactionID), RequestType.ACCEPT_T_ABORT);
@@ -701,7 +789,11 @@ public class MapClient implements Map<String, String> {
                                         sequences.get(transactionID).ACCEPTED_T_COMMIT = true; // Update transaction sequence
                                         asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
 
-                                        // Bano: TODO: Call create object here
+                                        // >>>>> Send CREATE_OBJECT to relevant shards asynchronously
+                                        // (this will spawn new threads; see createObjects()) <<<<<<<
+                                        if( transactions.get(this.transactionID).outputs.size() > 0 )
+                                            createObjects(transactions.get(this.transactionID).outputs);
+                                        // >>>>>>>>>>>>><<<<<<<<<<<<<
 
                                     } else if (strShardResponse.equals(ResponseType.ACCEPTED_T_ABORT) ) {
                                         // cleanup
