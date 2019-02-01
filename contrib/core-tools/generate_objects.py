@@ -8,6 +8,8 @@
 # Bano / 01Feb2019
 # =================
 
+# FIXME Manually remove last line (empty line) from the output files
+
 # FIXME: How many objects
 numObjects=2000
 
@@ -34,6 +36,7 @@ def genObjectFiles():
 	# Write objects and their status to corresponding files
 	for j in range(1, numObjects+1):
 		fileIndex = mapObjectsToShard(j)
+		
 		line = str(j)+"\t0\n" #object<\t>status
 				# status is fixed to 0 (means CACTIVE)
 		outFiles[fileIndex].write(line)

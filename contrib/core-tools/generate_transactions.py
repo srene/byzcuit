@@ -13,7 +13,7 @@ import random
 numShards=2
 
 # FIXME: How many transactions
-numTransactions=20
+numTransactions=100
 
 # FIXME: How many inputs per transaction
 numInputs=2
@@ -103,9 +103,12 @@ def genTransactionFile():
 				delimiter = ""
 
 			outputs = outputs + str(getNextOutputObject()) + delimiter
-															    
-		
-		line = str(transactionID) + "\t" + inputs + "\t" + outputs + "\n"
+	
+		endOfLine = "\n"
+		if i == numTransactions-1:
+			endOfLine = ""
+			
+		line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
 		outFile.write(line)
 
 	# Close file
