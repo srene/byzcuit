@@ -1,13 +1,14 @@
 # ==================
 # This script generates a file "test_transactions.txt" containing
 # transactions to test. This file is used by the client to submit
-# transactions from a file for testing purposes. Files have format: 
-# <transaction ID>\t<input1;input2;input3>\t<output1;output2;output3;output4> 
+# transactions from a file for testing purposes. Files have format:
+# <transaction ID>\t<input1;input2;input3>\t<output1;output2;output3;output4>
 # is fixed to 0 (meaning ACTIVE)
 
 # Bano / 01Feb2019
 # ==================
 import random
+import sys
 
 # FIXME: How many shards
 numShards=2
@@ -27,10 +28,26 @@ path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceC
 # FIXME: Used to seed output object generator
 # Choose a large number, greater than the input objects generated
 # to avoid overwriting input objects
-outputObjectCounter=5000
+outputObjectCounter=1000000000
 
 # FIXME: Used to seed transaction ID generator
 transactionIDCounter=1
+
+def config(newNumShards, newNumTransactions, newNumInputs, newNumOutputs, newPath, newOutputObjectCounter=outputObjectCounter, newTransactionIDCounter=transactionIDCounter):
+	global numShards
+	global numTransactions
+	global numInputs
+	global numOutputs
+	global path
+	global outputObjectCounter
+	global transactionIDCounter
+	numShards = newNumShards
+	numTransactions = newNumTransactions
+	numInputs = newNumInputs
+	numOutputs = newNumOutputs
+	path = newPath
+	outputObjectCounter = newOutputObjectCounter
+	transactionIDCounter = newTransactionIDCounter
 
 # This is indexed by shard ID and value represents the next
 # unused (=active) object in this shard
@@ -65,7 +82,7 @@ def getNextTransactionID():
 
 def mapObjectsToShard(theObject):
 	# This is how Byzcuit maps objects to shards
-	return theObject % numShards  
+	return theObject % numShards
 
 
 def getRandomShard():
@@ -103,11 +120,11 @@ def genTransactionFile():
 				delimiter = ""
 
 			outputs = outputs + str(getNextOutputObject()) + delimiter
-	
+
 		endOfLine = "\n"
 		if i == numTransactions-1:
 			endOfLine = ""
-			
+
 		line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
 		outFile.write(line)
 
@@ -117,5 +134,7 @@ def genTransactionFile():
 # =============
 # Program entry point
 # =============
-genTransactionFile()
-
+if __name__ == '__main__':
+	if len(sys.argv) > 1:
+		config(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5])
+	genTransactionFile()
