@@ -52,6 +52,9 @@ class ClientService {
             // process a transaction
             service.post("/transaction/dump", this::dumpTransactionRequest);
 
+            service.post("/send_transactions_from_file", this::sendTransactionsFromFileRequest);
+            service.get("/load_objects_from_file", this::loadObjectsFromFileRequest);
+
         }));
 
     }
@@ -72,6 +75,82 @@ class ClientService {
 
             // submit the transaction
             Client.submitTransactionNoWait(request.body());
+
+            // create json response
+            responseJson.put("success", "True");
+            response.status(200);
+
+        }
+        catch (Exception e) {
+
+            // create json  error response
+            responseJson.put("success", "False");
+            responseJson.put("message", e.getMessage());
+            response.status(400);
+
+            // verbose print
+            if (Main.VERBOSE) { Utils.printStacktrace(e); }
+
+        }
+
+        // print request
+        printRequestDetails(request, responseJson.toString());
+
+        // send
+        response.type("application/json");
+        return responseJson.toString();
+
+    }
+
+    private String loadObjectsFromFileRequest(Request request, Response response) {
+
+        // verbose print
+        if (Main.VERBOSE) { Utils.printHeader("Incoming load objects from file request"); }
+
+        // process the transaction & create response
+        JSONObject responseJson = new JSONObject();
+        try {
+
+            // submit the transaction
+            Client.loadObjectsFromFile();
+
+            // create json response
+            responseJson.put("success", "True");
+            response.status(200);
+
+        }
+        catch (Exception e) {
+
+            // create json  error response
+            responseJson.put("success", "False");
+            responseJson.put("message", e.getMessage());
+            response.status(400);
+
+            // verbose print
+            if (Main.VERBOSE) { Utils.printStacktrace(e); }
+
+        }
+
+        // print request
+        printRequestDetails(request, responseJson.toString());
+
+        // send
+        response.type("application/json");
+        return responseJson.toString();
+
+    }
+
+    private String sendTransactionsFromFileRequest(Request request, Response response) {
+
+        // verbose print
+        if (Main.VERBOSE) { Utils.printHeader("Incoming load objects from file request"); }
+
+        // process the transaction & create response
+        JSONObject responseJson = new JSONObject();
+        try {
+
+            // submit the transaction
+            Client.sendTransactionsFromFile();
 
             // create json response
             responseJson.put("success", "True");

@@ -313,7 +313,7 @@ public class MapClient implements Map<String, String> {
 
     // Tells the shards to read objects from a file. Each shard will read its own object file
     // File path has been hardcoded to: "ChainSpaceConfig/test_objects"+thisShard+".txt";
-    public void loadObjectsFromFile() {
+    public void loadObjectsFromFile(int shardID) {
         String strModule = "loadTransactionsFromFile (DRIVER)";
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -321,8 +321,8 @@ public class MapClient implements Map<String, String> {
 
             oos.writeInt(RequestType.LOAD_TEST_OBJECTS_FROM_FILE);
             oos.close();
-            logMsg(strLabel, strModule, "Sending request to shard "+defaultShardID+" to load objects from file");
-            byte[] reply = clientProxy.get(defaultShardID).invokeUnordered(out.toByteArray());
+            logMsg(strLabel, strModule, "Sending request to shard "+shardID+" to load objects from file");
+            byte[] reply = clientProxy.get(shardID).invokeUnordered(out.toByteArray());
             if (reply != null) {
                 logMsg(strLabel, strModule, "Server reply is: "+new String(reply));
             }
@@ -331,6 +331,16 @@ public class MapClient implements Map<String, String> {
 
         } catch (IOException ioe) {
             logMsg(strLabel, strModule, "Exception loading objects from file" + ioe.getMessage());
+        }
+    }
+
+    public void loadObjectsFromFile() {
+        loadObjectsFromFile(defaultShardID);
+    }
+
+    public void loadObjectsFromFileAllShards() {
+        for (int shardID : shardToConfig.keySet()) {
+            loadObjectsFromFile(shardID);
         }
     }
 

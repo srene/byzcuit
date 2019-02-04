@@ -190,6 +190,14 @@ public class Client {
 
     }
 
+    static void loadObjectsFromFile() {
+        client.loadObjectsFromFileAllShards();
+    }
+
+    static void sendTransactionsFromFile() {
+        client.sendTransactionsFromFile("");
+    }
+
 }
 
 

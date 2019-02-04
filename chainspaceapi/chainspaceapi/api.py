@@ -9,12 +9,17 @@ class ChainspaceClient(object):
     def url(self):
         return 'http://{}:{}'.format(self.host, self.port)
 
-    def process_transaction(self, transaction):
-        endpoint = self.url + '/api/1.0/transaction/process'
-        r = requests.post(endpoint, json=transaction)
-        return r
-
     def dump_transaction(self, transaction):
         endpoint = self.url + '/api/1.0/transaction/dump'
         r = requests.post(endpoint, json=transaction)
+        return r
+
+    def load_objects_from_file(self):
+        endpoint = self.url + '/api/1.0/load_objects_from_file'
+        r = requests.get(endpoint)
+        return r
+
+    def send_transactions_from_file(self):
+        endpoint = self.url + '/api/1.0/send_transactions_from_file'
+        r = requests.post(endpoint)
         return r
