@@ -180,19 +180,11 @@ public class Client {
 
     }
 
-    static String submitTransaction(String request) throws AbortTransactionException, NoSuchAlgorithmException {
-
-        System.out.println("\n>> SUBMITTING TRANSACTION...");
-        Transaction transaction = new Transaction(request);
-        return client.submitTransaction(transaction);
-
-    }
-
     static void submitTransactionNoWait(String request) throws AbortTransactionException, NoSuchAlgorithmException {
 
         System.out.println("\n>> SUBMITTING TRANSACTION...");
         Transaction transaction = new Transaction(request);
-        client.submitTransaction(transaction, 0);
+        client.submitTransaction(transaction);
 
         slogger.log(transaction.inputs.get(0));
 
