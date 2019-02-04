@@ -538,6 +538,7 @@ public class TreeMapServer extends DefaultRecoverable {
         sequences.get(t.id).ACCEPTED_T_COMMIT = true;
 
         logMsg(strLabel,strModule,"done");
+        slogger.log(String.join(",", t.inputs) + "-" + String.join(",", t.outputs) + " " + countUniqueInputShards(t));
     }
 
     // Things to check when processing PREPARE_T
