@@ -177,6 +177,17 @@ class ChainspaceNetwork(object):
 
         return result
 
+    def ssh_exec_in_shards(self, command):
+        self._log("Executing command on all nodes in shards: {}".format(command))
+        args = [(self._single_ssh_exec, shard[0], command) for shard in self.shards.itervalues()]
+        pool = Pool(ChainspaceNetwork.threads)
+        result = pool.map(_multi_args_wrapper, args)
+        pool.close()
+        pool.join()
+        self._log("Executed command on all nodes in shards: {}".format(command))
+
+        return result
+
     def ssh_close(self):
         self._log("Closing SSH connection on all nodes...")
         args = [(self._single_ssh_close, instance) for instance in self._get_running_instances()]
@@ -269,6 +280,18 @@ class ChainspaceNetwork(object):
 
     def config_me(self, directory='/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'):
         return os.system(self._config_shards_command(directory))
+
+    def generate_transactions(self, num_shards, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
+        num_shards = str(int(num_shards))
+        num_transactions = str(int(num_transactions))
+        num_inputs = str(int(num_inputs))
+        num_outputs = str(int(num_outputs))
+        return os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/')
+
+    def generate_objects(self, num_objects, num_shards):
+        num_objects = str(int(num_objects))
+        num_shards = str(int(num_shards))
+        self.ssh_exec_in_shards('python chainspace/contrib/core-tools/generate_objects.py ' + num_objects + ' ' + num_shards + 'chainspace/chainspacecore/ChainSpaceConfig/')
 
     def get_tps_set(self):
         tps_set = []
