@@ -252,6 +252,7 @@ class ChainspaceNetwork(object):
         self._log("Resetting Chainspace core state...")
         command = ''
         command += 'rm database.sqlite; rm simplelog;'
+        command += 'rm chainspace/chainspacecore/ChainSpaceConfig/test_objects*.txt;'
         self.ssh_exec(command)
         self._log("Reset Chainspace core state.")
 
@@ -291,7 +292,7 @@ class ChainspaceNetwork(object):
     def generate_objects(self, num_objects, num_shards):
         num_objects = str(int(num_objects))
         num_shards = str(int(num_shards))
-        self.ssh_exec_in_shards('python chainspace/contrib/core-tools/generate_objects.py ' + num_objects + ' ' + num_shards + 'chainspace/chainspacecore/ChainSpaceConfig/')
+        self.ssh_exec_in_shards('python chainspace/contrib/core-tools/generate_objects.py ' + num_objects + ' ' + num_shards + ' chainspace/chainspacecore/ChainSpaceConfig/')
 
     def get_tps_set(self):
         tps_set = []
