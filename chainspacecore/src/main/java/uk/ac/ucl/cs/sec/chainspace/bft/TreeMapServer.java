@@ -7,18 +7,10 @@ import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 
 // Classes that need to be declared to implement this
 // replicated Map
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
 
 import uk.ac.ucl.cs.sec.chainspace.Core;
 import uk.ac.ucl.cs.sec.chainspace.SimpleLogger;
@@ -36,12 +28,14 @@ public class TreeMapServer extends DefaultRecoverable {
     HashMap<String,String> configData;
     String shardConfigFile; // Contains info about shards and corresponding config files.
                             // Its value will be set by loadConfiguration()
+    String shardConfigDir;
     private HashMap<Integer, String> shardToConfig = null; // Configurations indexed by shard ID
 
     private Core core;
 
     public TreeMapServer(String configFile) {
         this.slogger = new SimpleLogger();
+        shardConfigDir = new File(configFile).getParent();
 
         try { core = new Core(); }
         catch (ClassNotFoundException | SQLException e) {
@@ -368,7 +362,7 @@ public class TreeMapServer extends DefaultRecoverable {
             else if(reqType == RequestType.LOAD_TEST_OBJECTS_FROM_FILE) {
                 String reply="Successfully loaded objects from file.";
                 // FIXME: Hardcoded file path. Each shard will read its own object file
-                String targetFile = "ChainSpaceConfig/test_objects"+thisShard+".txt";
+                String targetFile = shardConfigDir+"/test_objects"+thisShard+".txt";
                 if(!readObjectsFromFile(targetFile))
                     reply = "Failed to load objects from file: "+targetFile;
                 return reply.getBytes("UTF-8");

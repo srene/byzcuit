@@ -344,10 +344,13 @@ public class MapClient implements Map<String, String> {
         }
     }
 
-    // This is a client side function, for submitting transactions read from a file
     public Boolean sendTransactionsFromFile(String fileID) {
-        // FixMe: Hardcoded file path: "ChainSpaceClientConfig/test_transactions"+fileID+".txt"
-        String fileTransactions = "ChainSpaceClientConfig/test_transactions"+fileID+".txt";
+        return sendTransactionsFromFile(fileID, "ChainSpaceClientConfig");
+    }
+
+    // This is a client side function, for submitting transactions read from a file
+    public Boolean sendTransactionsFromFile(String fileID, String dir) {
+        String fileTransactions = dir + "/test_transactions"+fileID+".txt";
 
         String strModule = "sendTransactionsFromFile: ";
         String strLabel = "";

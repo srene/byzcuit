@@ -6,6 +6,7 @@ import uk.ac.ucl.cs.sec.chainspace.bft.RequestType;
 import uk.ac.ucl.cs.sec.chainspace.bft.Transaction;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
@@ -31,6 +32,7 @@ public class Client {
     static String shardConfigFile;
     static int thisClient;
     static MapClient client;
+    static String configDir;
 
 
     /**
@@ -109,6 +111,7 @@ public class Client {
 
         // get filepath
         String configFile = args[0];
+        configDir = new File(configFile).getParent();
 
         // fill config data
         configData = new HashMap<>();
