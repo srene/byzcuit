@@ -5,6 +5,8 @@ import sys
 from multiprocessing.dummy import Pool
 import random
 import math
+import functools
+import operator
 
 import boto3
 import paramiko
@@ -179,7 +181,7 @@ class ChainspaceNetwork(object):
 
     def ssh_exec_in_shards(self, command):
         self._log("Executing command on all nodes in shards: {}".format(command))
-        args = [(self._single_ssh_exec, shard[0], command) for shard in self.shards.itervalues()]
+        args = [(self._single_ssh_exec, instance, command) for instance in functools.reduce(operator.iconcat, self.shards.itervalues(), [])]
         pool = Pool(ChainspaceNetwork.threads)
         result = pool.map(_multi_args_wrapper, args)
         pool.close()
