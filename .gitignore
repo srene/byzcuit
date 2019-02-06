@@ -1,2 +1,5 @@
 .DS_Store
 venv
+simplelog_client
+test_tranasctions*.txt
+test_objects*.txt
