@@ -282,16 +282,16 @@ class ChainspaceNetwork(object):
     def config_me(self, directory='/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'):
         return os.system(self._config_shards_command(directory))
 
-    def generate_transactions(self, num_shards, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
-        num_shards = str(int(num_shards))
+    def generate_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
+        num_shards = len(self.shards)
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
         num_outputs = str(int(num_outputs))
         return os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/')
 
-    def generate_objects(self, num_objects, num_shards):
+    def generate_objects(self, num_objects):
         num_objects = str(int(num_objects))
-        num_shards = str(int(num_shards))
+        num_shards = len(self.shards)
         self.ssh_exec_in_shards('python chainspace/contrib/core-tools/generate_objects.py ' + num_objects + ' ' + num_shards + ' chainspace/chainspacecore/ChainSpaceConfig/')
 
     def get_tps_set(self):

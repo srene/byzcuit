@@ -72,7 +72,7 @@ class Tester(object):
                 self.start_tcpdump()
                 self.start_client()
                 time.sleep(10)
-                dumper.simulation_batched(num_transactions, inputs_per_tx=1, batch_size=batch_size, batch_sleep=1)
+                dumper.simulation_batched(self.network, num_transactions, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1)
                 time.sleep(20)
                 self.stop_client()
                 self.stop_tcpdump()
@@ -98,7 +98,7 @@ class Tester(object):
         self.outfh.write(json.dumps(latency_times_set_set))
         return latency_times_set_set
 
-    def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, co=False):
+    def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, outputs_per_tx=0):
         tps_sets_sets = []
         for num_shards in range(min_shards, max_shards+1):
             tps_sets = []
@@ -116,7 +116,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_client()
                     time.sleep(10)
-                    dumper.simulation_batched(num_transactions, inputs_per_tx, batch_size=batch_size, batch_sleep=1, co=co)
+                    dumper.simulation_batched(self.network, num_transactions, inputs_per_tx, outputs_per_tx, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
                     self.stop_client()
 
@@ -166,7 +166,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_client()
                     time.sleep(10)
-                    dumper.simulation_batched(num_transactions, 1, batch_size=batch_size, batch_sleep=1)
+                    dumper.simulation_batched(self.network, num_transactions, 1, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
                     self.stop_client()
 
@@ -223,7 +223,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_client()
                     time.sleep(10)
-                    dumper.simulation_batched(num_transactions, num_inputs, batch_size=batch_size, batch_sleep=1, num_shards=num_shards, shards_per_tx=shards_per_tx)
+                    dumper.simulation_batched(self.network, num_transactions, num_inputs, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
                     self.stop_client()
 
@@ -291,15 +291,16 @@ if __name__ == '__main__':
         print t.measure_shard_scaling(min_shards, max_shards, runs, inputs_per_tx)
     elif sys.argv[1] == 'shardscaling_mico':
         inputs_per_tx = int(sys.argv[2])
-        min_shards = int(sys.argv[3])
-        max_shards = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        outputs_per_tx = int(sys.argv[3])
+        min_shards = int(sys.argv[4])
+        max_shards = int(sys.argv[5])
+        runs = int(sys.argv[6])
+        outfile = sys.argv[7]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
 
-        print t.measure_shard_scaling(min_shards, max_shards, runs, inputs_per_tx, co=True)
+        print t.measure_shard_scaling(min_shards, max_shards, runs, inputs_per_tx, outputs_per_tx)
     elif sys.argv[1] == 'inputscaling':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
