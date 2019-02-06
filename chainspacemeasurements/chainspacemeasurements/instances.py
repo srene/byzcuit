@@ -230,7 +230,9 @@ class ChainspaceNetwork(object):
         self._log("Started Chainspace core on all shards.")
 
     def _start_shard(self, shard):
-        command = 'screen -dmS chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
+        command += 'cd ~/chainspace/chainspacecore;'
+        command += 'screen -dmS chainspacecore java -cp lib/BFT-SMaRt.jar:target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer ChainSpaceConfig/config.txt;'
+        command += 'cd ~;'
         for instance in shard:
                 self._single_ssh_exec(instance, command)
                 time.sleep(0.5)
