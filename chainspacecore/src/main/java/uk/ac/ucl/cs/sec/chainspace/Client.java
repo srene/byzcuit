@@ -198,7 +198,7 @@ public class Client {
     }
 
     static void sendTransactionsFromFile() {
-        client.sendTransactionsFromFile("");
+        client.sendTransactionsFromFile("", configDir);
     }
 
 }
