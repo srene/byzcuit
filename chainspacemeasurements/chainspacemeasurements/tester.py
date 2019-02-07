@@ -43,7 +43,7 @@ class Tester(object):
         command = ''
         command += 'cd {0};'.format(self.core_directory)
         command += 'rm client.log;'
-        command += 'screen -dmSL -Logfile client.log clientservice ./runclientservice.sh;'
+        command += 'screen -Logfile client.log -dmSL clientservice ./runclientservice.sh;'
         os.system(command)
 
     def stop_client(self):
