@@ -101,7 +101,7 @@ public class MapClient implements Map<String, String> {
             System.exit(-1);
         }
         int shardID = iObject % numShards;
-        logMsg(strLabel, strModule, "Mapped object " + object + " to shard " + shardID);
+        logMsg(strLabel, strModule, "Object " + object + " mapped to shard " + shardID);
         return shardID;
     }
 
