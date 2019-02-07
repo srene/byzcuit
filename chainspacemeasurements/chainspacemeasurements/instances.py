@@ -214,12 +214,6 @@ class ChainspaceNetwork(object):
         self._get_running_instances().stop()
         self._log("Stopped all nodes.")
 
-    def start_core_all(self):
-        self._log("Starting Chainspace core on all nodes...")
-        command = 'screen -dmS chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
-        self.ssh_exec(command)
-        self._log("Started Chainspace core on all nodes.")
-
     def start_core(self):
         self._log("Starting Chainspace core on all shards...")
         args = [(self._start_shard, shard) for shard in self.shards.values()]
@@ -230,7 +224,8 @@ class ChainspaceNetwork(object):
         self._log("Started Chainspace core on all shards.")
 
     def _start_shard(self, shard):
-        command = 'screen -dmS chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
+        command = 'rm shard.log;'
+        command += 'screen -dmSL -Logfile shard.log chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
         for instance in shard:
                 self._single_ssh_exec(instance, command)
                 time.sleep(0.5)
