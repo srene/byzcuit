@@ -707,16 +707,7 @@ public class TreeMapServer extends DefaultRecoverable {
     }
 
     public int mapObjectToShard(String object) {
-        String strModule = "mapObjectToShard";
-        Integer iObject = Integer.parseInt(object);
-        int numShards = shardToConfig.size();
-        if (numShards == 0) {
-            logMsg(strLabel, strModule, "0 shards found. Now exiting");
-            System.exit(-1);
-        }
-        int shardID = iObject % numShards;
-        logMsg(strLabel, strModule, "Object " + object + " mapped to shard " + shardID);
-        return shardID;
+        return Utils.mapObjectToShard(object, shardToConfig.size());
     }
 
     void logMsg(String id, String module, String msg) {
