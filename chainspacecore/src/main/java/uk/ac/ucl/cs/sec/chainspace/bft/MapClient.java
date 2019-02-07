@@ -93,7 +93,7 @@ public class MapClient implements Map<String, String> {
     }
 
     public int mapObjectToShard(String object) {
-        return Utils.mapObjectToShard(object, shardToConfig.size());
+        return BFTUtils.mapObjectToShard(object, shardToConfig.size());
     }
 
     // This function returns a unique client ID every time it is called

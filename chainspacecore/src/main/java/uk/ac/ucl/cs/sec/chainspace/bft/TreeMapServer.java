@@ -707,7 +707,7 @@ public class TreeMapServer extends DefaultRecoverable {
     }
 
     public int mapObjectToShard(String object) {
-        return Utils.mapObjectToShard(object, shardToConfig.size());
+        return BFTUtils.mapObjectToShard(object, shardToConfig.size());
     }
 
     void logMsg(String id, String module, String msg) {
