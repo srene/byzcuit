@@ -27,6 +27,7 @@ class ChainspaceNetwork(object):
 
         self.ssh_connections = {}
         self.shards = {}
+        self.clients = []
 
         self.logging = True
 
@@ -58,7 +59,7 @@ class ChainspaceNetwork(object):
             _safe_print(message)
 
     def _log_instance(self, instance, message):
-        message = '[instance {}] {}'.format(instance.id, message)
+        message = '[instance {}] {}'.format(instance.public_ip_address, message)
         self._log(message)
 
     def _single_ssh_connect(self, instance):
@@ -197,6 +198,17 @@ class ChainspaceNetwork(object):
 
         return result
 
+    def ssh_exec_in_clients(self, command):
+        self._log("Executing command on all nodes in clients: {}".format(command))
+        args = [(self._single_ssh_exec, instance, command) for instance in self.clients]
+        pool = Pool(ChainspaceNetwork.threads)
+        result = pool.map(_multi_args_wrapper, args)
+        pool.close()
+        pool.join()
+        self._log("Executed command on all nodes in clients: {}".format(command))
+
+        return result
+
     def ssh_close(self, type):
         self._log("Closing SSH connection on all nodes...")
         args = [(self._single_ssh_close, instance) for instance in self._get_running_instances(type)]
@@ -285,6 +297,33 @@ class ChainspaceNetwork(object):
 
     def config_me(self, directory='/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'):
         return os.system(self._config_shards_command(directory))
+
+    def config_clients(self, clients):
+        instances = [instance for instance in self._get_running_instances(CLIENT)]
+        shuffled_instances = random.sample(instances, shards * nodes_per_shard)
+
+        if clients > len(instances):
+            raise ValueError("Number of total nodes exceeds the number of running instances.")
+
+        self.clients = []
+        for client in range(clients):
+            self.clients.append(shuffled_instances[client])
+
+        for instance in self.clients:
+            self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
+
+    def start_clients(self):
+        command = 'rm screenlog.0;'
+        command += 'cd ~/chainspace/chainspacecore;'
+        command += 'screen -dmSL clientservice ./runclientservice.sh;'
+        command += 'cd;'
+        self.ssh_exec_in_shards(command)
+
+    def stop_core(self):
+        self._log("Stopping all Chainspace clients...")
+        command = 'killall java' # hacky; should use pid file
+        self.ssh_exec(command, CLIENT)
+        self._log("Stopping all Chainspace clients.")
 
     def generate_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
         num_shards = str(len(self.shards))
