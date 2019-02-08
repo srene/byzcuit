@@ -12,7 +12,7 @@ import sys
 # FIXME Manually remove last line (empty line) from the output files
 
 # FIXME: How many objects
-numObjects=10000
+numObjects=20000
 
 # FIXME: How many shards
 numShards=2
