@@ -300,7 +300,7 @@ class ChainspaceNetwork(object):
 
     def config_clients(self, clients):
         instances = [instance for instance in self._get_running_instances(CLIENT)]
-        shuffled_instances = random.sample(instances, shards * nodes_per_shard)
+        shuffled_instances = random.sample(instances, clients)
 
         if clients > len(instances):
             raise ValueError("Number of total nodes exceeds the number of running instances.")
@@ -319,7 +319,7 @@ class ChainspaceNetwork(object):
         command += 'cd;'
         self.ssh_exec_in_shards(command)
 
-    def stop_core(self):
+    def stop_clients(self):
         self._log("Stopping all Chainspace clients...")
         command = 'killall java' # hacky; should use pid file
         self.ssh_exec(command, CLIENT)
