@@ -164,7 +164,7 @@ class ChainspaceNetwork(object):
         command += 'cd ~/chainspace/chainspacecore; export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64; mvn package assembly:single;'
         command += 'cd ~; mkdir contracts;'
         command += 'cp ~/chainspace/chainspacemeasurements/chainspacemeasurements/contracts/simulator.py contracts'
-        self.ssh_exec(command)
+        self.ssh_exec(command, type)
         self._log("Installed Chainspace core on all nodes.")
 
     def ssh_connect(self, type):
