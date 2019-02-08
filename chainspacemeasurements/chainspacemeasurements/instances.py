@@ -325,17 +325,35 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command, CLIENT)
         self._log("Stopping all Chainspace clients.")
 
-    def generate_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
+    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
         num_outputs = str(int(num_outputs))
-        return os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/')
+        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/')
+
+        transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
+        transactions_per_client = len(transactions) / len(self.clients)
+
+        for client in self.clients:
+            data = '\\n'.join([transactions.pop for i in range(transactions_per_client)])
+
+            command = 'printf \'' + data + '\' > ' + directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
+            self._single_ssh_exec(client, command)
+
+    def send_transactions(self):
+        command = 'python -c \'from chainspaceapi import ChainspaceClient; client = ChainspaceClient(); client.send_transactions_from_file()\''
+        self.ssh_exec_in_clients(command)
 
     def generate_objects(self, num_objects):
         num_objects = str(int(num_objects))
         num_shards = str(len(self.shards))
         self.ssh_exec_in_shards('python chainspace/contrib/core-tools/generate_objects.py ' + num_objects + ' ' + num_shards + ' chainspace/chainspacecore/ChainSpaceConfig/')
+
+    def load_objects(self):
+        instance = self.clients[0]
+        command = 'python -c \'from chainspaceapi import ChainspaceClient; client = ChainspaceClient(); client.load_objects_from_file()\''
+        self._single_ssh_exec(instance, command)
 
     def get_tps_set(self):
         tps_set = []
