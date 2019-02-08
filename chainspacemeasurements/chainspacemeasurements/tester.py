@@ -37,17 +37,12 @@ class Tester(object):
         time.sleep(2)
         network.clean_state_core()
 
-    def start_client(self):
-        os.system('rm ' + self.core_directory + '/simplelog_client')
+    def start_clients(self, n):
+        self.network.config_clients(n)
+        n.start_clients()
 
-        command = ''
-        command += 'cd {0};'.format(self.core_directory)
-        command += 'rm screenlog.0;'
-        command += 'screen -dmSL clientservice ./runclientservice.sh;'
-        os.system(command)
-
-    def stop_client(self):
-        os.system('killall java')
+    def stop_clients(self):
+        n.stop_clients()
 
     def start_tcpdump(self):
         os.system('sudo rm ' + self.core_directory + '/tcpdump_log')
@@ -71,7 +66,7 @@ class Tester(object):
                 self.network.start_core()
                 time.sleep(10)
                 self.start_tcpdump()
-                self.start_client()
+                self.start_clients(2)
                 time.sleep(10)
                 dumper.simulation_batched(self.network, num_transactions, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1)
                 time.sleep(20)
@@ -115,7 +110,7 @@ class Tester(object):
                     num_transactions = 300*num_shards
 
                     time.sleep(10)
-                    self.start_client()
+                    self.start_clients(num_shards)
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, inputs_per_tx, outputs_per_tx, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
@@ -165,7 +160,7 @@ class Tester(object):
                     num_transactions = 300*num_shards
 
                     time.sleep(10)
-                    self.start_client()
+                    self.start_clients(num_shards)
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, 1, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
@@ -222,7 +217,7 @@ class Tester(object):
                     num_transactions = 300*num_shards
 
                     time.sleep(10)
-                    self.start_client()
+                    self.start_clients(num_shards)
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, num_inputs, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)

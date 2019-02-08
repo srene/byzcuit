@@ -160,6 +160,7 @@ class ChainspaceNetwork(object):
         self._log("Installing Chainspace core on all nodes...")
         command = 'git clone https://github.com/sheharbano/byzcuit chainspace;'
         command += 'sudo pip install chainspace/chainspacecontract;'
+        command += 'sudo pip install chainspace/chainspaceapi;'
         command += 'sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java;'
         command += 'cd ~/chainspace/chainspacecore; export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64; mvn package assembly:single;'
         command += 'cd ~; mkdir contracts;'
