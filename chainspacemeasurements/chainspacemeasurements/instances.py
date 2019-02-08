@@ -34,7 +34,7 @@ class ChainspaceNetwork(object):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
-            {'Name': 'tag:node_type', 'Values': [type]},
+            {'Name': 'tag:node_type', 'Values': [str(type)]},
             {'Name': 'instance-state-name', 'Values': ['running']}
         ])
 
@@ -42,7 +42,7 @@ class ChainspaceNetwork(object):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
-            {'Name': 'tag:node_type', 'Values': [type]},
+            {'Name': 'tag:node_type', 'Values': [str(type)]},
             {'Name': 'instance-state-name', 'Values': ['stopped']}
         ])
 
@@ -50,7 +50,7 @@ class ChainspaceNetwork(object):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
-            {'Name': 'tag:node_type', 'Values': [type]},
+            {'Name': 'tag:node_type', 'Values': [str(type)]},
         ])
 
     def _log(self, message):
