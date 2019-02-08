@@ -33,7 +33,7 @@ class Tester(object):
 
         # freshen state
         self.stop_tcpdump()
-        self.stop_client()
+        self.stop_clients()
         network.stop_core()
         time.sleep(2)
         network.clean_state_core()
@@ -71,7 +71,7 @@ class Tester(object):
                 time.sleep(10)
                 dumper.simulation_batched(self.network, num_transactions, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1)
                 time.sleep(20)
-                self.stop_client()
+                self.stop_clients()
                 self.stop_tcpdump()
                 self.network.stop_core()
                 time.sleep(2)
@@ -115,7 +115,7 @@ class Tester(object):
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, inputs_per_tx, outputs_per_tx, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
-                    self.stop_client()
+                    self.stop_clients()
 
                     tps_set = self.network.get_tpsm_set()
                     tps_sets.append(tps_set)
@@ -165,7 +165,7 @@ class Tester(object):
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, 1, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
-                    self.stop_client()
+                    self.stop_clients()
 
                     tps_set = self.network.get_tps_set()
                     tps_sets.append(tps_set)
@@ -222,7 +222,7 @@ class Tester(object):
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_transactions, num_inputs, 0, batch_size=batch_size, batch_sleep=1)
                     time.sleep(20)
-                    self.stop_client()
+                    self.stop_clients()
 
                     txes = {}
                     logs = self.network.get_r0_logs()
