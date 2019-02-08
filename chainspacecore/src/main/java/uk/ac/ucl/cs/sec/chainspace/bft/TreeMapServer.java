@@ -549,7 +549,7 @@ public class TreeMapServer extends DefaultRecoverable {
         String reply = ResponseType.PREPARED_T_COMMIT;
         String strErr = "Unknown";
 
-        logMsg(strLabel,strModule,"Table of objects "+table.toString());
+        //logMsg(strLabel,strModule,"Table of objects "+table.toString());
 
         for(String key: t.inputs) {
             String readValue = table.get(key);
