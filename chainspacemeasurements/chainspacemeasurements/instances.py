@@ -336,7 +336,7 @@ class ChainspaceNetwork(object):
         transactions_per_client = len(transactions) / len(self.clients)
 
         for client in self.clients:
-            data = '\\n'.join([transactions.pop for i in range(transactions_per_client)])
+            data = '\\n'.join([transactions.pop() for i in range(transactions_per_client)])
 
             command = 'printf \'' + data + '\' > ' + directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
             self._single_ssh_exec(client, command)
