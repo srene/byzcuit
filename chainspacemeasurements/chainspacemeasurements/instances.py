@@ -59,7 +59,7 @@ class ChainspaceNetwork(object):
             _safe_print(message)
 
     def _log_instance(self, instance, message):
-        message = '[instance {}] {}'.format(instance.public_ip_address, message)
+        message = '[{}] {}'.format(instance.public_ip_address, message)
         self._log(message)
 
     def _single_ssh_connect(self, instance):
