@@ -63,9 +63,9 @@ class Tester(object):
                     self.network.config_core(num_shards, 4)
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     self.network.start_core()
-                    
+
                     time.sleep(10)
-                    self.start_clients(num_shards)
+                    self.start_clients()
                     time.sleep(10)
                     dumper.simulation_batched(self.network, inputs_per_tx, outputs_per_tx)
                     time.sleep(20)
@@ -112,7 +112,7 @@ class Tester(object):
                     self.network.start_core()
 
                     time.sleep(10)
-                    self.start_clients(num_shards)
+                    self.start_clients()
                     time.sleep(10)
                     dumper.simulation_batched(self.network, 1, 0)
                     time.sleep(20)
@@ -166,7 +166,7 @@ class Tester(object):
                     self.network.start_core()
 
                     time.sleep(10)
-                    self.start_clients(num_shards)
+                    self.start_clients()
                     time.sleep(10)
                     dumper.simulation_batched(self.network, num_inputs, 0)
                     time.sleep(20)
