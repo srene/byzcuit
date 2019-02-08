@@ -136,7 +136,7 @@ class ChainspaceNetwork(object):
                         {'Key': 'type', 'Value': 'chainspace'},
                         {'Key': 'network_id', 'Value': self.network_id},
                         {'Key': 'Name', 'Value': 'Chainspace node (network: {})'.format(self.network_id)},
-                        {'Key': 'node_type', 'Value': [type]},
+                        {'Key': 'node_type', 'Value': str(type)},
                     ]
                 }
             ]
