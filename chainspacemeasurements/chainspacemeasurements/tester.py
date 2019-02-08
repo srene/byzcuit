@@ -6,7 +6,7 @@ import traceback
 import json
 
 from chainspacemeasurements import dumper
-from chainspacemeasurements.instances import ChainspaceNetwork
+from chainspacemeasurements.instances import ChainspaceNetwork, SHARD
 from chainspacemeasurements.dumpparser import parse_tcpdump
 
 
@@ -36,7 +36,7 @@ class Tester(object):
         self.stop_clients()
         network.stop_core()
         time.sleep(2)
-        network.clean_state_core()
+        network.clean_state_core(SHARD)
 
     def start_clients(self, n):
         self.network.config_clients(n)
@@ -75,7 +75,7 @@ class Tester(object):
                 self.stop_tcpdump()
                 self.network.stop_core()
                 time.sleep(2)
-                self.network.clean_state_core()
+                self.network.clean_state_core(SHARD)
 
                 tcpdump_txes = parse_tcpdump(self.core_directory + '/tcpdump_log')
                 client_txes = parse_client_simplelog(self.core_directory + '/simplelog_client')
@@ -126,7 +126,7 @@ class Tester(object):
                     try:
                         self.network.stop_core()
                         time.sleep(2)
-                        self.network.clean_state_core()
+                        self.network.clean_state_core(SHARD)
                     except:
                         # reset connection
                         for i in range(5):
@@ -135,7 +135,7 @@ class Tester(object):
                                 self.network.ssh_connect()
                                 self.network.stop_core()
                                 time.sleep(2)
-                                self.network.clean_state_core()
+                                self.network.clean_state_core(SHARD)
                                 break
                             except:
                                 time.sleep(5)
@@ -176,7 +176,7 @@ class Tester(object):
                     try:
                         self.network.stop_core()
                         time.sleep(2)
-                        self.network.clean_state_core()
+                        self.network.clean_state_core(SHARD)
                     except:
                         # reset connection
                         for i in range(5):
@@ -185,7 +185,7 @@ class Tester(object):
                                 self.network.ssh_connect()
                                 self.network.stop_core()
                                 time.sleep(2)
-                                self.network.clean_state_core()
+                                self.network.clean_state_core(SHARD)
                                 break
                             except:
                                 time.sleep(5)
@@ -244,7 +244,7 @@ class Tester(object):
                     try:
                         self.network.stop_core()
                         time.sleep(2)
-                        self.network.clean_state_core()
+                        self.network.clean_state_core(SHARD)
                     except:
                         # reset connection
                         for i in range(5):
@@ -253,7 +253,7 @@ class Tester(object):
                                 self.network.ssh_connect()
                                 self.network.stop_core()
                                 time.sleep(2)
-                                self.network.clean_state_core()
+                                self.network.clean_state_core(SHARD)
                                 break
                             except:
                                 time.sleep(5)
