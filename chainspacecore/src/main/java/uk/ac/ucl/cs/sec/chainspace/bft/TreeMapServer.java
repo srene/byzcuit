@@ -24,6 +24,7 @@ public class TreeMapServer extends DefaultRecoverable {
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
     int dummyStartIndex = 10000; // Dummy objects start from which ID
+    int dummyEndIndex = 20000; // Last dummy object is at this ID
     int dummyIncrement = 0; // Used for getting the next unused dummy object for this shard
     int currDummyIndex = dummyStartIndex; // Next available unused dummy object
     // MapClient client
@@ -714,9 +715,15 @@ public class TreeMapServer extends DefaultRecoverable {
         return BFTUtils.mapObjectToShard(object, shardToConfig.size());
     }
 
-    public int getDummyObjectID() {
+    public int getInputDummyObjectID() {
         int dummy = currDummyIndex;
         currDummyIndex += dummyIncrement; // point to the next available dummy object
+        return dummy;
+    }
+
+    public int getOutputDummyObjectID() {
+        int dummy = dummyEndIndex;
+        dummyEndIndex += dummyIncrement; // point to the ID for the next output dummy object
         return dummy;
     }
 
