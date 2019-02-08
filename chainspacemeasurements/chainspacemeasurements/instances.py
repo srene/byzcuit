@@ -245,6 +245,7 @@ class ChainspaceNetwork(object):
 
     def _start_shard(self, shard):
         command = 'rm screenlog.0;'
+        command += 'rm simplelog;'
         command += 'screen -dmSL chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
         for instance in shard:
                 self._single_ssh_exec(instance, command)
@@ -269,7 +270,7 @@ class ChainspaceNetwork(object):
     def clean_state_core(self, type):
         self._log("Resetting Chainspace core state...")
         command = ''
-        command += 'rm database.sqlite; rm simplelog;'
+        command += 'rm database.sqlite;'
         command += 'rm chainspace/chainspacecore/ChainSpaceConfig/test_objects*.txt;'
         self.ssh_exec(command, type)
         self._log("Reset Chainspace core state.")
