@@ -28,7 +28,8 @@ class Tester(object):
 
         network.logging = False
 
-        network.ssh_connect()
+        network.ssh_connect(0)
+        network.ssh_connect(1)
 
         # freshen state
         self.stop_tcpdump()
