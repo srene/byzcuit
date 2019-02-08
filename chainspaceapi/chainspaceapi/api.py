@@ -19,7 +19,7 @@ class ChainspaceClient(object):
         r = requests.get(endpoint)
         return r
 
-    def send_transactions_from_file(self):
-        endpoint = self.url + '/api/1.0/send_transactions_from_file'
-        r = requests.post(endpoint)
+    def send_transactions_from_file(self ,batch_size, batch_sleep):
+        endpoint = self.url + '/api/1.0/send_transactions_from_file?batch_size={0}&batch_sleep={1}'.format(batch_size, batch_sleep)
+        r = requests.get(endpoint)
         return r

@@ -18,6 +18,7 @@ import java.nio.charset.Charset;
 // replicated Map
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class MapClient implements Map<String, String> {
 
@@ -336,16 +337,22 @@ public class MapClient implements Map<String, String> {
     }
 
     public Boolean sendTransactionsFromFile(String fileID) {
-        return sendTransactionsFromFile(fileID, "ChainSpaceClientConfig");
+        return sendTransactionsFromFile(fileID, "ChainSpaceClientConfig", 1000, 0);
+    }
+
+    public Boolean sendTransactionsFromFile(String fileID, int batchSize, int batchSleep) {
+        return sendTransactionsFromFile(fileID, "ChainSpaceClientConfig", batchSize, batchSleep);
     }
 
     // This is a client side function, for submitting transactions read from a file
-    public Boolean sendTransactionsFromFile(String fileID, String dir) {
+    public Boolean sendTransactionsFromFile(String fileID, String dir, int batchSize, int batchSleep) {
         String fileTransactions = dir + "/test_transactions"+fileID+".txt";
 
         String strModule = "sendTransactionsFromFile: ";
         String strLabel = "";
         logMsg(strLabel,strModule,"Reading transactions");
+
+        int sent = 0;
 
         try {
             BufferedReader lineReader = new BufferedReader(new FileReader(fileTransactions));
@@ -390,6 +397,11 @@ public class MapClient implements Map<String, String> {
 
                     // Submit transaction
                     submitTransaction(t);
+                    sent++;
+
+                    if (sent % batchSize == 0) {
+                        TimeUnit.SECONDS.sleep(batchSleep);
+                    }
                 }
                 else
                     logMsg(strLabel,strModule,"Skipping Line # "+countLine+" in file: Insufficient tokens");
