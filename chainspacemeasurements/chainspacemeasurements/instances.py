@@ -342,8 +342,8 @@ class ChainspaceNetwork(object):
             command = 'printf \'' + data + '\' > ' + directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
             self._single_ssh_exec(client, command)
 
-    def send_transactions(self):
-        command = 'python -c \'from chainspaceapi import ChainspaceClient; client = ChainspaceClient(); client.send_transactions_from_file()\''
+    def send_transactions(self, batch_size, batch_sleep):
+        command = 'python -c \'from chainspaceapi import ChainspaceClient; client = ChainspaceClient(); client.send_transactions_from_file({0}, {1})\''.format(batch_size, batch_sleep)
         self.ssh_exec_in_clients(command)
 
     def generate_objects(self, num_objects):

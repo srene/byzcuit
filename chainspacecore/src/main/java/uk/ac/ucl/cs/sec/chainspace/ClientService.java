@@ -52,7 +52,7 @@ class ClientService {
             // process a transaction
             service.post("/transaction/dump", this::dumpTransactionRequest);
 
-            service.post("/send_transactions_from_file", this::sendTransactionsFromFileRequest);
+            service.get("/send_transactions_from_file", this::sendTransactionsFromFileRequest);
             service.get("/load_objects_from_file", this::loadObjectsFromFileRequest);
 
         }));
@@ -150,7 +150,7 @@ class ClientService {
         try {
 
             // submit the transaction
-            Client.sendTransactionsFromFile();
+            Client.sendTransactionsFromFile(Integer.parseInt(request.queryParams("batch_size")), Integer.parseInt(request.queryParams("batch_sleep")));
 
             // create json response
             responseJson.put("success", "True");

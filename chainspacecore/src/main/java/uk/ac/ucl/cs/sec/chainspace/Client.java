@@ -197,8 +197,8 @@ public class Client {
         client.loadObjectsFromFileAllShards();
     }
 
-    static void sendTransactionsFromFile() {
-        client.sendTransactionsFromFile("", configDir);
+    static void sendTransactionsFromFile(int batchSize, int batchSleep) {
+        client.sendTransactionsFromFile("", configDir, batchSize, batchSleep);
     }
 
 }

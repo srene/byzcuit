@@ -38,8 +38,8 @@ class Tester(object):
         time.sleep(2)
         network.clean_state_core(SHARD)
 
-    def start_clients(self, num):
-        self.network.config_clients(num)
+    def start_clients(self):
+        self.network.config_clients(len(self.network.shards)*4)
         n.start_clients()
 
     def stop_clients(self):
@@ -52,49 +52,6 @@ class Tester(object):
     def stop_tcpdump(self):
         os.system('sudo killall tcpdump')
 
-    def measure_client_latency(self, min_batch, max_batch, batch_step, runs):
-        latency_times_set_set = []
-
-        for batch_size in range(min_batch, max_batch+1, batch_step):
-            latency_times_set = []
-            for i in range(runs):
-                print "Running client latency measurements for batch size {0} (run {1}).".format(batch_size, i)
-
-                num_transactions = max_batch*3
-
-                self.network.config_core(2, 4)
-                self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
-                self.network.start_core()
-                time.sleep(10)
-                self.start_tcpdump()
-                self.start_clients(2)
-                time.sleep(10)
-                dumper.simulation_batched(self.network, num_transactions, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1)
-                time.sleep(20)
-                self.stop_clients()
-                self.stop_tcpdump()
-                self.network.stop_core()
-                time.sleep(2)
-                self.network.clean_state_core(SHARD)
-
-                tcpdump_txes = parse_tcpdump(self.core_directory + '/tcpdump_log')
-                client_txes = parse_client_simplelog(self.core_directory + '/simplelog_client')
-
-                latency_times = []
-                for tx, t in tcpdump_txes.iteritems():
-                    try:
-                        latency_times.append((tcpdump_txes[tx] - client_txes[tx])/1000.0)
-                    except Exception:
-                        pass
-
-                latency_times_set.append(latency_times)
-                print latency_times
-
-            latency_times_set_set.append(latency_times_set)
-
-        self.outfh.write(json.dumps(latency_times_set_set))
-        return latency_times_set_set
-
     def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, outputs_per_tx=0):
         tps_sets_sets = []
         for num_shards in range(min_shards, max_shards+1):
@@ -106,14 +63,11 @@ class Tester(object):
                     self.network.config_core(num_shards, 4)
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     self.network.start_core()
-
-                    batch_size = 100*num_shards
-                    num_transactions = 300*num_shards
-
+                    
                     time.sleep(10)
                     self.start_clients(num_shards)
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_transactions, inputs_per_tx, outputs_per_tx, batch_size=batch_size, batch_sleep=1)
+                    dumper.simulation_batched(self.network, inputs_per_tx, outputs_per_tx)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -157,13 +111,10 @@ class Tester(object):
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     self.network.start_core()
 
-                    batch_size = 100*num_shards
-                    num_transactions = 300*num_shards
-
                     time.sleep(10)
                     self.start_clients(num_shards)
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_transactions, 1, 0, batch_size=batch_size, batch_sleep=1)
+                    dumper.simulation_batched(self.network, 1, 0)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -214,13 +165,10 @@ class Tester(object):
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     self.network.start_core()
 
-                    batch_size = 100*num_shards
-                    num_transactions = 300*num_shards
-
                     time.sleep(10)
                     self.start_clients(num_shards)
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_transactions, num_inputs, 0, batch_size=batch_size, batch_sleep=1)
+                    dumper.simulation_batched(self.network, num_inputs, 0)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -333,14 +281,3 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_node_scaling(num_shards, min_nodes, max_nodes, runs, step=step)
-    elif sys.argv[1] == 'clientlatency':
-        min_batch = int(sys.argv[2])
-        max_batch = int(sys.argv[3])
-        batch_step = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
-
-        n = ChainspaceNetwork(0)
-        t = Tester(n, outfile=outfile)
-
-        print t.measure_client_latency(min_batch, max_batch, batch_step, runs)
