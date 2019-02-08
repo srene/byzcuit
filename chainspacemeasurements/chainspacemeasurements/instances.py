@@ -317,7 +317,7 @@ class ChainspaceNetwork(object):
         command += 'cd ~/chainspace/chainspacecore;'
         command += 'screen -dmSL clientservice ./runclientservice.sh;'
         command += 'cd;'
-        self.ssh_exec_in_shards(command)
+        self.ssh_exec_in_clients(command)
 
     def stop_clients(self):
         self._log("Stopping all Chainspace clients...")
