@@ -250,10 +250,10 @@ class ChainspaceNetwork(object):
                 time.sleep(0.5)
 
     def stop_core(self):
-        self._log("Stopping Chainspace core on all nodes...")
+        self._log("Stopping Chainspace core on all shards...")
         command = 'killall java' # hacky; should use pid file
         self.ssh_exec(command, SHARD)
-        self._log("Stopping Chainspace core on all nodes.")
+        self._log("Stopping Chainspace core on all shards.")
 
     def uninstall_core(self, type):
         self._log("Uninstalling Chainspace core on all nodes...")
