@@ -11,6 +11,9 @@ import operator
 import boto3
 import paramiko
 
+SHARD = 0
+CLIENT = 1
+
 
 class ChainspaceNetwork(object):
     threads = 100
@@ -27,24 +30,27 @@ class ChainspaceNetwork(object):
 
         self.logging = True
 
-    def _get_running_instances(self):
+    def _get_running_instances(self, type):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
+            {'Name': 'tag:node_type', 'Values': [type]},
             {'Name': 'instance-state-name', 'Values': ['running']}
         ])
 
-    def _get_stopped_instances(self):
+    def _get_stopped_instances(self, type):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
+            {'Name': 'tag:node_type', 'Values': [type]},
             {'Name': 'instance-state-name', 'Values': ['stopped']}
         ])
 
-    def _get_all_instances(self):
+    def _get_all_instances(self, type):
         return self.ec2.instances.filter(Filters=[
             {'Name': 'tag:type', 'Values': ['chainspace']},
             {'Name': 'tag:network_id', 'Values': [self.network_id]},
+            {'Name': 'tag:node_type', 'Values': [type]},
         ])
 
     def _log(self, message):
@@ -114,8 +120,8 @@ class ChainspaceNetwork(object):
 
         return command
 
-    def launch(self, count, key_name):
-        self._log("Launching {} instances...".format(count))
+    def launch(self, count, key_name, type):
+        self._log("Launching {0} instances of type {1}...".format(count, type))
         self.ec2.create_instances(
             ImageId=_jessie_mapping[self.aws_region], # Debian 8.7
             InstanceType='t2.medium',
@@ -130,13 +136,14 @@ class ChainspaceNetwork(object):
                         {'Key': 'type', 'Value': 'chainspace'},
                         {'Key': 'network_id', 'Value': self.network_id},
                         {'Key': 'Name', 'Value': 'Chainspace node (network: {})'.format(self.network_id)},
+                        {'Key': 'node_type', 'Value': [type]},
                     ]
                 }
             ]
         )
-        self._log("Launched {} instances.".format(count))
+        self._log("Launched {0} instances of type {1}...".format(count, type))
 
-    def install_deps(self):
+    def install_deps(self, type):
         self._log("Installing Chainspace dependencies on all nodes...")
         command = 'export DEBIAN_FRONTEND=noninteractive;'
         command += 'export DEBIAN_PRIORITY=critical;'
@@ -145,10 +152,10 @@ class ChainspaceNetwork(object):
         command += '&& sudo -E apt --yes --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -t jessie-backports openjdk-8-jdk'
         command += '&& sudo -E apt --yes --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install git python-pip maven screen psmisc'
         command += '; do :; done'
-        self.ssh_exec(command)
+        self.ssh_exec(command, type)
         self._log("Installed Chainspace dependencies on all nodes.")
 
-    def install_core(self):
+    def install_core(self, type):
         self._log("Installing Chainspace core on all nodes...")
         command = 'git clone https://github.com/sheharbano/byzcuit chainspace;'
         command += 'sudo pip install chainspace/chainspacecontract;'
@@ -159,18 +166,18 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command)
         self._log("Installed Chainspace core on all nodes.")
 
-    def ssh_connect(self):
+    def ssh_connect(self, type):
         self._log("Initiating SSH connection on all nodes...")
-        args = [(self._single_ssh_connect, instance) for instance in self._get_running_instances()]
+        args = [(self._single_ssh_connect, instance) for instance in self._get_running_instances(type)]
         pool = Pool(ChainspaceNetwork.threads)
         pool.map(_multi_args_wrapper, args)
         pool.close()
         pool.join()
         self._log("Initiated SSH connection on all nodes.")
 
-    def ssh_exec(self, command):
+    def ssh_exec(self, command, type):
         self._log("Executing command on all nodes: {}".format(command))
-        args = [(self._single_ssh_exec, instance, command) for instance in self._get_running_instances()]
+        args = [(self._single_ssh_exec, instance, command) for instance in self._get_running_instances(type)]
         pool = Pool(ChainspaceNetwork.threads)
         result = pool.map(_multi_args_wrapper, args)
         pool.close()
@@ -190,28 +197,28 @@ class ChainspaceNetwork(object):
 
         return result
 
-    def ssh_close(self):
+    def ssh_close(self, type):
         self._log("Closing SSH connection on all nodes...")
-        args = [(self._single_ssh_close, instance) for instance in self._get_running_instances()]
+        args = [(self._single_ssh_close, instance) for instance in self._get_running_instances(type)]
         pool = Pool(ChainspaceNetwork.threads)
         pool.map(_multi_args_wrapper, args)
         pool.close()
         pool.join()
         self._log("Closed SSH connection on all nodes.")
 
-    def terminate(self):
+    def terminate(self, type):
         self._log("Terminating all nodes...")
-        self._get_all_instances().terminate()
+        self._get_all_instances(type).terminate()
         self._log("All nodes terminated.")
 
-    def start(self):
+    def start(self, type):
         self._log("Starting all nodes...")
-        self._get_stopped_instances().start()
+        self._get_stopped_instances(type).start()
         self._log("Started all nodes.")
 
-    def stop(self):
+    def stop(self, type):
         self._log("Stopping all nodes...")
-        self._get_running_instances().stop()
+        self._get_running_instances(type).stop()
         self._log("Stopped all nodes.")
 
     def start_core(self):
@@ -233,31 +240,31 @@ class ChainspaceNetwork(object):
     def stop_core(self):
         self._log("Stopping Chainspace core on all nodes...")
         command = 'killall java' # hacky; should use pid file
-        self.ssh_exec(command)
+        self.ssh_exec(command, SHARD)
         self._log("Stopping Chainspace core on all nodes.")
 
-    def uninstall_core(self):
+    def uninstall_core(self, type):
         self._log("Uninstalling Chainspace core on all nodes...")
         command = 'rm -rf chainspace;'
         command += 'sudo pip uninstall -y chainspacecontract;'
         command += 'rm -rf contracts;'
         command += 'rm -rf config;';
-        self.ssh_exec(command)
+        self.ssh_exec(command, type)
         self._log("Uninstalled Chainspace core on all nodes.")
 
-    def clean_state_core(self):
+    def clean_state_core(self, type):
         self._log("Resetting Chainspace core state...")
         command = ''
         command += 'rm database.sqlite; rm simplelog;'
         command += 'rm chainspace/chainspacecore/ChainSpaceConfig/test_objects*.txt;'
-        self.ssh_exec(command)
+        self.ssh_exec(command, type)
         self._log("Reset Chainspace core state.")
 
     def config_local_client(self, directory):
         os.system(self._config_shards_command(directory))
 
     def config_core(self, shards, nodes_per_shard):
-        instances = [instance for instance in self._get_running_instances()]
+        instances = [instance for instance in self._get_running_instances(SHARD)]
         shuffled_instances = random.sample(instances, shards * nodes_per_shard)
 
         if shards * nodes_per_shard > len(instances):
