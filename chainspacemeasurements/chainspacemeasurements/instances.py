@@ -260,6 +260,7 @@ class ChainspaceNetwork(object):
         self._log("Uninstalling Chainspace core on all nodes...")
         command = 'rm -rf chainspace;'
         command += 'sudo pip uninstall -y chainspacecontract;'
+        command += 'sudo pip uninstall -y chainspaceapi;'
         command += 'rm -rf contracts;'
         command += 'rm -rf config;';
         self.ssh_exec(command, type)
