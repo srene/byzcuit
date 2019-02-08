@@ -23,7 +23,10 @@ public class TreeMapServer extends DefaultRecoverable {
     HashMap<String, TransactionSequence> sequences; // Indexed by Transaction ID
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
-    // MapClient client;
+    int dummyStartIndex = 10000; // Dummy objects start from which ID
+    int dummyIncrement = 0; // Used for getting the next unused dummy object for this shard
+    int currDummyIndex = dummyStartIndex; // Next available unused dummy object
+    // MapClient client
     String strLabel; // FIXME: Looks like this has never been set, so this is basically an empty string
     HashMap<String,String> configData;
     String shardConfigFile; // Contains info about shards and corresponding config files.
@@ -51,6 +54,7 @@ public class TreeMapServer extends DefaultRecoverable {
             System.exit(0);
         }
         initializeShardConfig();
+        dummyIncrement = shardToConfig.size();
 
         table = new TreeMap<>(); // contains objects and their state
         sequences = new  HashMap<>(); // contains operation sequences for transactions
@@ -708,6 +712,18 @@ public class TreeMapServer extends DefaultRecoverable {
 
     public int mapObjectToShard(String object) {
         return BFTUtils.mapObjectToShard(object, shardToConfig.size());
+    }
+
+    public int getDummyObjectID() {
+        int dummy = currDummyIndex;
+        currDummyIndex += dummyIncrement; // point to the next available dummy object
+        return dummy;
+    }
+
+    public Boolean isDummyObject(int objectID) {
+        if( objectID >= dummyStartIndex )
+            return true;
+        return false;
     }
 
     void logMsg(String id, String module, String msg) {
