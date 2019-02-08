@@ -9,4 +9,4 @@ def simulation_batched(network, inputs_per_tx, outputs_per_tx):
     time.sleep(5)
 
     network.prepare_transactions(num_transactions, inputs_per_tx, outputs_per_tx)
-    network.send_transactions(150, 1)
+    network.send_transactions(500, 1)
