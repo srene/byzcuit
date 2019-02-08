@@ -23,10 +23,20 @@ public class TreeMapServer extends DefaultRecoverable {
     HashMap<String, TransactionSequence> sequences; // Indexed by Transaction ID
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
-    int dummyStartIndex = 10000; // Dummy objects start from which ID
-    int dummyEndIndex = 20000; // Last dummy object is at this ID
-    int dummyIncrement = 0; // Used for getting the next unused dummy object for this shard
-    int currDummyIndex = dummyStartIndex; // Next available unused dummy object
+
+
+    // Dummy objects
+
+    int dummyGlobalInputIndex = 10000; // Dummy objects start at this ID
+    int dummyShardInputIndex = -1; // Dummy objects in this shard start at this ID
+    int currDummyInputIndex = -1; // Next available unused input dummy object
+
+    int dummyGlobalOutputIndex = 20000; // Output dummy objects start at this ID
+    int dummyShardOutputIndex = -1; // Output dummy object for this shard is at this ID
+    int currDummyOutputIndex = -1; // Next available unused input dummy object
+
+    int dummyIncrement = -1; // Used for getting the next unused dummy object for this shard
+
     // MapClient client
     String strLabel; // FIXME: Looks like this has never been set, so this is basically an empty string
     HashMap<String,String> configData;
@@ -55,6 +65,13 @@ public class TreeMapServer extends DefaultRecoverable {
             System.exit(0);
         }
         initializeShardConfig();
+
+        dummyShardInputIndex = dummyGlobalInputIndex + thisShard;
+        currDummyInputIndex = dummyShardInputIndex;
+
+        dummyShardOutputIndex = dummyGlobalOutputIndex + thisShard;
+        currDummyOutputIndex = dummyShardOutputIndex;
+
         dummyIncrement = shardToConfig.size();
 
         table = new TreeMap<>(); // contains objects and their state
@@ -353,6 +370,14 @@ public class TreeMapServer extends DefaultRecoverable {
                     resultBytes = readValue.getBytes();
                 }
                 return resultBytes;
+            }
+            else if (reqType == RequestType.GET_INPUT_DUMMY) {
+                String reply = getInputDummyObjectID();
+                return reply.getBytes("UTF-8");
+            }
+            else if (reqType == RequestType.GET_OUTPUT_DUMMY) {
+                String reply = getOutputDummyObjectID();
+                return reply.getBytes("UTF-8");
             }
             else if (reqType == RequestType.SIZE) {
                 int size = table.size();
@@ -715,22 +740,17 @@ public class TreeMapServer extends DefaultRecoverable {
         return BFTUtils.mapObjectToShard(object, shardToConfig.size());
     }
 
-    public int getInputDummyObjectID() {
-        int dummy = currDummyIndex;
-        currDummyIndex += dummyIncrement; // point to the next available dummy object
-        return dummy;
+
+    public String getInputDummyObjectID() {
+        int dummy = currDummyInputIndex;
+        currDummyInputIndex += dummyIncrement; // point to the next available dummy object
+        return String.valueOf(dummy);
     }
 
-    public int getOutputDummyObjectID() {
-        int dummy = dummyEndIndex;
-        dummyEndIndex += dummyIncrement; // point to the ID for the next output dummy object
-        return dummy;
-    }
-
-    public Boolean isDummyObject(int objectID) {
-        if( objectID >= dummyStartIndex )
-            return true;
-        return false;
+    public String getOutputDummyObjectID() {
+        int dummy = currDummyOutputIndex;
+        currDummyOutputIndex += dummyIncrement; // point to the ID for the next output dummy object
+        return String.valueOf(dummy);
     }
 
     void logMsg(String id, String module, String msg) {

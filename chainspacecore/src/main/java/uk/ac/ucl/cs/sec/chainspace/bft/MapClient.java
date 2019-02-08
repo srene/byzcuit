@@ -58,7 +58,8 @@ public class MapClient implements Map<String, String> {
     HashMap<String, TransactionSequence> sequences; // Indexed by Transaction ID,
                                                     // Val is the state transition sequence for this transaction
     HashMap<String, HashSet<Integer>> targetShards; // Indexed by Transaction ID,
-                                                    // Val is target shards corresponding to a transaction
+                                                    // Val is target input shards corresponding to a transaction
+
     HashMap<String, Transaction> transactions; // Indexed by Transaction ID,
                                                // Val is the full transaction
                                               // Contains all transactions being processed
@@ -302,6 +303,43 @@ public class MapClient implements Map<String, String> {
         }
     }
 
+
+    public String getInputDummyObject(int shardID) {
+        String strModule = "GET INPUT DUMMY OBJECT (DRIVER)";
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(out);
+            oos.writeInt(RequestType.GET_INPUT_DUMMY);
+            oos.writeInt(shardID);
+            oos.close();
+            byte[] reply = clientProxy.get(shardID).invokeUnordered(out.toByteArray());
+            String value = new String(reply);
+            return value;
+
+        } catch (IOException ioe) {
+            logMsg(strLabel, strModule, "Exception getting input dummy object " + ioe.getMessage());
+            return null;
+        }
+    }
+
+    public String getOutputDummyObject(int shardID) {
+        String strModule = "GET OUTPUT DUMMY OBJECT (DRIVER)";
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(out);
+            oos.writeInt(RequestType.GET_OUTPUT_DUMMY);
+            oos.close();
+            byte[] reply = clientProxy.get(shardID).invokeUnordered(out.toByteArray());
+            String value = new String(reply);
+            return value;
+
+        } catch (IOException ioe) {
+            logMsg(strLabel, strModule, "Exception getting output dummy object " + ioe.getMessage());
+            return null;
+        }
+    }
+
+
     // Tells the shards to read objects from a file. Each shard will read its own object file
     // File path has been hardcoded to: "ChainSpaceConfig/test_objects"+thisShard+".txt";
     public void loadObjectsFromFile(int shardID) {
@@ -482,7 +520,10 @@ public class MapClient implements Map<String, String> {
 
     public void submitTransaction(Transaction t) {
         String strModule = "SUBMIT_T (DRIVER)";
+
         List<String> inputObjects = t.inputs;
+        List<String> outputObjects = t.outputs;
+        List<String> outputOnlyObjects; // objects that belong to shards that are output only
 
         // Identify target shards for this transaction
         for (String input : inputObjects) {
@@ -499,6 +540,23 @@ public class MapClient implements Map<String, String> {
             }
             targetShards.get(t.id).add(shardID);
         }
+
+/*        // Determine which shards are only output shards, and add those to the
+        // input shards by creating dummy objects
+        for (String output : outputObjects) {
+            int shardID = mapObjectToShard(output);
+
+            if (shardID == -1) {
+                logMsg(strLabel, strModule, "Cannot map output " + output + " in transaction ID " + t.id + " to a shard.");
+                return;
+            }
+
+            if (!targetShards.get(t.id).contains(shardID)) { // output only shard
+               t.inputs.add();
+            }
+            targetShards.get(t.id).add(shardID);
+        }*/
+
 
         // print out target shards
         logMsg(strLabel, strModule, "Target shards for transaction ID " + t.id + "are as follows:");

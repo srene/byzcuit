@@ -111,6 +111,8 @@ public class ConsoleClient {
             System.out.println("13. TEST_CORE_3");
             System.out.println("20. LOAD_TEST_OBJECTS_FROM_FILE");
             System.out.println("21. SEND_TRANSACTIONS_FROM_FILE");
+            System.out.println("22. GET_INPUT_DUMMY");
+            System.out.println("23. GET_OUTPUT_DUMMY");
 
 
             cmd = sc.nextInt();
@@ -145,6 +147,18 @@ public class ConsoleClient {
                     System.out.println("Getting the map size");
                     int size = client.size();
                     System.out.println("Map size: " + size);
+                    break;
+
+                case RequestType.GET_INPUT_DUMMY:
+                    System.out.println("Getting a dummy input object");
+                    String in_dummy = client.getInputDummyObject(client.defaultShardID);
+                    System.out.println("Input dummy object is: " + in_dummy);
+                    break;
+
+                case RequestType.GET_OUTPUT_DUMMY:
+                    System.out.println("Getting a dummy output object");
+                    String out_dummy = client.getOutputDummyObject(client.defaultShardID);
+                    System.out.println("Output dummy object is: " + out_dummy);
                     break;
 
                 // All the tests below operate on whichever shards are relevant to the transaction
