@@ -806,6 +806,7 @@ public class MapClient implements Map<String, String> {
 
                                 {
                                     if (strShardResponse.equals(ResponseType.ACCEPTED_T_COMMIT) ) {
+                                        latencylog.justLog(Long.toString(System.currentTimeMillis() - txSentTimes.get(this.transactionID)));
                                         logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been committed (ACCEPTED_T_COMMITTED)");
                                         sequences.get(transactionID).ACCEPTED_T_COMMIT = true; // Update transaction sequence
                                         asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
