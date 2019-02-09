@@ -312,8 +312,7 @@ class ChainspaceNetwork(object):
         for client in range(clients):
             self.clients.append(shuffled_instances[client])
 
-        for instance in self.clients:
-            self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
+        self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
 
     def start_clients(self):
         command = 'rm screenlog.0;'
