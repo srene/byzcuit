@@ -10,6 +10,7 @@ import operator
 
 import boto3
 import paramiko
+import numpy
 
 SHARD = 0
 CLIENT = 1
@@ -312,11 +313,11 @@ class ChainspaceNetwork(object):
         for client in range(clients):
             self.clients.append(shuffled_instances[client])
 
-        for instance in self.clients:
-            self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
+        self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
 
     def start_clients(self):
         command = 'rm screenlog.0;'
+        command += 'rm latencylog;'
         command += 'cd ~/chainspace/chainspacecore;'
         command += 'screen -dmSL clientservice ./runclientservice.sh;'
         command += 'cd;'
@@ -328,12 +329,16 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command, CLIENT)
         self._log("Stopping all Chainspace clients.")
 
-    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace'):
+    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
         num_outputs = str(int(num_outputs))
-        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/')
+        input_object_mode = str(int(input_object_mode))
+        create_dummy_objects = str(int(create_dummy_objects))
+        num_dummy_objects = str(int(num_dummy_objects))
+        output_object_mode = str(int(output_object_mode))
+        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' + input_object_mode + ' ' + create_dummy_objects + ' ' + num_dummy_objects + ' ' + output_object_mode)
 
         transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
         transactions_per_client = len(transactions) / len(self.clients)
@@ -386,6 +391,16 @@ class ChainspaceNetwork(object):
             logs.append(log)
 
         return logs
+
+    def get_latency(self):
+        latencies = []
+        for instance in self.clients:
+            log = self._single_ssh_exec(instance, 'cat ~/chainspace/chainspacecore/latencylog')[1]
+            for line in log.splitlines():
+                if line:
+                    latencies.append(int(line))
+
+        return [numpy.median(latencies), numpy.std(latencies)]
 
 
 def _multi_args_wrapper(args):

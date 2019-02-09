@@ -9,6 +9,7 @@ import bftsmart.tom.RequestContext;
 import bftsmart.tom.ServiceProxy;
 import bftsmart.tom.core.messages.TOMMessage;
 import bftsmart.tom.core.messages.TOMMessageType;
+import uk.ac.ucl.cs.sec.chainspace.SimpleLogger;
 
 import java.math.BigInteger;
 import java.util.Vector;
@@ -40,6 +41,9 @@ public class MapClient implements Map<String, String> {
     private static int currClientID; // Each shard gets its own client with a unique ID
     private HashMap<Integer, Integer> shardToClient = null; // Client IDs indexed by shard ID
     private HashMap<Integer, Integer> shardToClientAsynch = null; // Asynch Client IDs indexed by shard ID
+
+    private HashMap<String, Long> txSentTimes = new HashMap<String, Long>();
+    private SimpleLogger latencylog = new SimpleLogger("latencylog");
 
     //public HashMap<String,Transaction> transactions = null; // Transactions indexed by Transaction ID
 
@@ -398,6 +402,7 @@ public class MapClient implements Map<String, String> {
                     // Submit transaction
                     submitTransaction(t);
                     sent++;
+                    txSentTimes.put(t.id, System.currentTimeMillis());
 
                     if (sent % batchSize == 0) {
                         TimeUnit.SECONDS.sleep(batchSleep);
@@ -801,6 +806,7 @@ public class MapClient implements Map<String, String> {
 
                                 {
                                     if (strShardResponse.equals(ResponseType.ACCEPTED_T_COMMIT) ) {
+                                        latencylog.justLog(Long.toString(System.currentTimeMillis() - txSentTimes.get(this.transactionID)));
                                         logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been committed (ACCEPTED_T_COMMITTED)");
                                         sequences.get(transactionID).ACCEPTED_T_COMMIT = true; // Update transaction sequence
                                         //asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies

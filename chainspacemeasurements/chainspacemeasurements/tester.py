@@ -52,7 +52,48 @@ class Tester(object):
     def stop_tcpdump(self):
         os.system('sudo killall tcpdump')
 
-    def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, outputs_per_tx=0):
+    def measure_client_latency(self, min_batch, max_batch, batch_step, runs, defences=False):
+        if defences:
+            create_dummy_objects = 1
+        else:
+            create_dummy_objects = 0
+        latency_times_set_set = []
+
+        for batch_size in range(min_batch, max_batch+1, batch_step):
+            latency_times_set = []
+            for i in range(runs):
+                print "Running client latency measurements for batch size {0} (run {1}).".format(batch_size, i)
+
+                num_transactions = max_batch*3
+
+                self.network.config_core(2, 4)
+                self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                self.network.start_core()
+                time.sleep(10)
+                self.start_clients()
+                time.sleep(10)
+                dumper.simulation_batched(self.network, inputs_per_tx=1, outputs_per_tx=4, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
+                time.sleep(20)
+                self.stop_clients()
+                self.network.stop_core()
+                time.sleep(2)
+                self.network.clean_state_core(SHARD)
+
+                latency_times = self.network.get_latency()
+
+                latency_times_set.append(latency_times)
+                print latency_times
+
+            latency_times_set_set.append(latency_times_set)
+
+        self.outfh.write(json.dumps(latency_times_set_set))
+        return latency_times_set_set
+
+    def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, outputs_per_tx=0, defences=False):
+        if defences:
+            create_dummy_objects = 1
+        else:
+            create_dummy_objects = 0
         tps_sets_sets = []
         for num_shards in range(min_shards, max_shards+1):
             tps_sets = []
@@ -67,7 +108,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, inputs_per_tx, outputs_per_tx)
+                    dumper.simulation_batched(self.network, inputs_per_tx, outputs_per_tx, create_dummy_objects=create_dummy_objects)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -146,7 +187,11 @@ class Tester(object):
         self.outfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_input_scaling(self, num_shards, min_inputs, max_inputs, runs, case=None):
+    def measure_input_scaling(self, num_shards, min_inputs, max_inputs, runs, case=None, defences=False):
+        if defences:
+            create_dummy_objects = 1
+        else:
+            create_dummy_objects = 0
         tps_sets_sets = []
         for num_inputs in range(min_inputs, max_inputs+1):
             tps_sets = []
@@ -168,7 +213,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 0)
+                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=create_dummy_objects)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -246,6 +291,18 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_shard_scaling(min_shards, max_shards, runs, inputs_per_tx, outputs_per_tx)
+    elif sys.argv[1] == 'shardscaling_micod':
+        inputs_per_tx = int(sys.argv[2])
+        outputs_per_tx = int(sys.argv[3])
+        min_shards = int(sys.argv[4])
+        max_shards = int(sys.argv[5])
+        runs = int(sys.argv[6])
+        outfile = sys.argv[7]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_shard_scaling(min_shards, max_shards, runs, inputs_per_tx, outputs_per_tx, defences=True)
     elif sys.argv[1] == 'inputscaling':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
@@ -257,6 +314,17 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_input_scaling(num_shards, min_inputs, max_inputs, runs)
+    elif sys.argv[1] == 'inputscaling_d':
+        num_shards = int(sys.argv[2])
+        min_inputs = int(sys.argv[3])
+        max_inputs = int(sys.argv[4])
+        runs = int(sys.argv[5])
+        outfile = sys.argv[6]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_input_scaling(num_shards, min_inputs, max_inputs, runs, defences=True)
     elif sys.argv[1] == 'inputscaling_f':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
@@ -281,3 +349,25 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_node_scaling(num_shards, min_nodes, max_nodes, runs, step=step)
+    elif sys.argv[1] == 'clientlatency':
+        min_batch = int(sys.argv[2])
+        max_batch = int(sys.argv[3])
+        batch_step = int(sys.argv[4])
+        runs = int(sys.argv[5])
+        outfile = sys.argv[6]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_client_latency(min_batch, max_batch, batch_step, runs)
+    elif sys.argv[1] == 'clientlatency_d':
+        min_batch = int(sys.argv[2])
+        max_batch = int(sys.argv[3])
+        batch_step = int(sys.argv[4])
+        runs = int(sys.argv[5])
+        outfile = sys.argv[6]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_client_latency(min_batch, max_batch, batch_step, runs, defences=True)
