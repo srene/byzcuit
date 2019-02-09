@@ -53,6 +53,10 @@ public class TreeMapServer extends DefaultRecoverable {
         initializeShardConfig();
 
         table = new TreeMap<>(); // contains objects and their state
+
+        table.put("DUMMYOBJECT", ObjectStatus.ACTIVE); // Adding a dummy object to the table to simulate
+                                                        // table lookup in sequence number check
+
         sequences = new  HashMap<>(); // contains operation sequences for transactions
         strLabel = "[s"+thisShard+"n"+ thisReplica+"] "; // This string is used in debug messages
 
@@ -305,6 +309,12 @@ public class TreeMapServer extends DefaultRecoverable {
 
             else if (reqType == RequestType.CREATE_OBJECT) {
                 strModule = "CREATE_OBJECT (MAIN): ";
+
+                // Do a dummy table lookup to simulate sequence number check for performance evaluation
+                Boolean dummy;
+                if(table.containsKey("DUMMYOBJECT"))
+                    dummy = true; // this will always be true
+
                 try {
                     ArrayList<String> objects = (ArrayList<String>) ois.readObject();
                     String status = ObjectStatus.ACTIVE; // New objects are active
@@ -549,6 +559,12 @@ public class TreeMapServer extends DefaultRecoverable {
         String reply = ResponseType.PREPARED_T_COMMIT;
         String strErr = "Unknown";
 
+        // Do a dummy table lookup to simulate sequence number check for performance evaluation
+        Boolean dummy;
+        if(table.containsKey("DUMMYOBJECT"))
+            dummy = true; // this will always be true
+
+
         //logMsg(strLabel,strModule,"Table of objects "+table.toString());
 
         for(String key: t.inputs) {
@@ -617,6 +633,11 @@ public class TreeMapServer extends DefaultRecoverable {
 
         String reply = ResponseType.ACCEPTED_T_ABORT;
         String strErr = "Unknown";
+
+        // Do a dummy table lookup to simulate sequence number check for performance evaluation
+        Boolean dummy;
+        if(table.containsKey("DUMMYOBJECT"))
+            dummy = true; // this will always be true
 
         if( msgType == RequestType.ACCEPT_T_COMMIT) {
             if(!sequences.get(t.id).PREPARED_T_COMMIT) {
