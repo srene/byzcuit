@@ -66,26 +66,16 @@ class Tester(object):
                 self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                 self.network.start_core()
                 time.sleep(10)
-                self.start_tcpdump()
-                self.start_clients(2)
+                self.start_clients()
                 time.sleep(10)
-                dumper.simulation_batched(self.network, num_transactions, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1)
+                dumper.simulation_batched(self.network, inputs_per_tx=1, outputs_per_tx=0, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions)
                 time.sleep(20)
                 self.stop_clients()
-                self.stop_tcpdump()
                 self.network.stop_core()
                 time.sleep(2)
                 self.network.clean_state_core(SHARD)
 
-                tcpdump_txes = parse_tcpdump(self.core_directory + '/tcpdump_log')
-                client_txes = parse_client_simplelog(self.core_directory + '/simplelog_client')
-
-                latency_times = []
-                for tx, t in tcpdump_txes.iteritems():
-                    try:
-                        latency_times.append((tcpdump_txes[tx] - client_txes[tx])/1000.0)
-                    except Exception:
-                        pass
+                latency_times = self.network.get_latency()
 
                 latency_times_set.append(latency_times)
                 print latency_times

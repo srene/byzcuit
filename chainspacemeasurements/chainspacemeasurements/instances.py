@@ -10,6 +10,7 @@ import operator
 
 import boto3
 import paramiko
+import numpy
 
 SHARD = 0
 CLIENT = 1
@@ -390,6 +391,16 @@ class ChainspaceNetwork(object):
             logs.append(log)
 
         return logs
+
+    def get_latency(self):
+        latencies = []
+        for instance in self.clients:
+            log = self._single_ssh_exec(instance, 'cat ~/chainspace/chainspacecore/latencylog')
+            for line in log.splitlines():
+                if line:
+                    latencies.append(int(line))
+
+        return [numpy.mean(latencies), numpy.std(latencies)]
 
 
 def _multi_args_wrapper(args):
