@@ -317,6 +317,7 @@ class ChainspaceNetwork(object):
 
     def start_clients(self):
         command = 'rm screenlog.0;'
+        command += 'rm latencylog;'
         command += 'cd ~/chainspace/chainspacecore;'
         command += 'screen -dmSL clientservice ./runclientservice.sh;'
         command += 'cd;'

@@ -30,4 +30,9 @@ public class SimpleLogger {
         this.writer.println(System.currentTimeMillis() + " " + message);
         this.writer.flush();
     }
+
+    public void justLog(String message) {
+        this.writer.println(message);
+        this.writer.flush();
+    }
 }
