@@ -396,7 +396,7 @@ class ChainspaceNetwork(object):
         latencies = []
         for instance in self.clients:
             log = self._single_ssh_exec(instance, 'cat ~/chainspace/chainspacecore/latencylog')
-            for line in log.splitlines():
+            for line in log:
                 if line:
                     latencies.append(int(line))
 
