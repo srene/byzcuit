@@ -11,7 +11,7 @@ import random
 import sys
 
 # FIXME: How many shards
-numShards=5
+numShards=4
 
 # FIXME: How many transactions
 numTransactions=100
@@ -20,7 +20,7 @@ numTransactions=100
 numInputs=2
 
 # FIXME: How many outputs per transaction
-numOutputs=3
+numOutputs=2
 
 # FIXME: Path where to write the output files
 path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceClientConfig/"
@@ -49,7 +49,8 @@ inputObjectMode = 0
 
 # Mode 0: means that output objects will be chosen from random shards
 # Mode 1: means that output objects will be sequentially chosen from shards in round robin
-outputObjectMode = 0
+# Mode -1: means that numDummyObjects (= non-input shards) will be added to transaction; (assuming createDummyObjects = 1)
+outputObjectMode = -1
 
 # Used in getNextShard to get shards sequentially
 nextShardCounter = 1
@@ -61,7 +62,7 @@ allShards = set()
 # If this is on, will add to the transaction input/output object pair(s) from the non-input shards
 createDummyObjects = 1
 
-# How many dummy objects to add
+# How many dummy objects to add (assuming outputObjectMode has been set to -1)
 # a positive integer X means add 0 to X dummy objects, depending on the number of non-input shards
 # -1 means will add as many dummy objects as there are non-input shards
 numDummyObjects = 2
@@ -99,11 +100,10 @@ def initInputObjectCounter():
 	global numShards
 	global inputObjectCounter
 	inputObjectCounter = [None] * numShards
-	inputObjectCounter[0] = numShards # special case, since shards start from 0
+	#inputObjectCounter[0] = numShards # special case, since shards start from 0
     
-	for i in range(1,numShards):
-		inputObjectCounter[i] = i % numShards
-
+	for i in range(0,numShards):
+		inputObjectCounter[i] = i
 
 def initOutputObjectCounter():
 	global numShards
@@ -116,13 +116,13 @@ def initOutputObjectCounter():
 def getNextInputObject(shardID):
 	global inputObjectCounter
 	nextObject = inputObjectCounter[shardID]
-	inputObjectCounter[shardID]+=numShards
+	inputObjectCounter[shardID] += numShards
 	return nextObject
 
 def getNextOutputObject(shardID):
 	global outputObjectCounter
 	nextObject = outputObjectCounter[shardID]
-	outputObjectCounter[shardID]+=numShards
+	outputObjectCounter[shardID] += numShards
 	return nextObject
 
 def getNextOutputObjectSequential():
@@ -162,6 +162,7 @@ def genTransactionFile():
 	initOutputObjectCounter()
     
 	inputShards = set()
+	outputShards = set()
     
 	# Create / open file to write
 	fileName = path+"test_transactions.txt"
@@ -188,29 +189,42 @@ def genTransactionFile():
 			inputs = inputs + str(getNextInputObject(inputShard)) + delimiter
 			inputShards.add(inputShard)
         
+
 		# generate output objects
+        	outputs = ""
         
-		outputs = ""
-        
-		if createDummyObjects == 0:
-			outputs = ""
+		if outputObjectMode != -1: # generate output objects randomly or sequentially
 			for j in range(numOutputs):
 				delimiter = ";"
-				# don't put delimiter after the last output
+				#don't put delimiter after the last output
 				if j == numOutputs-1:
 					delimiter = ""
-				
+
 				strOutput = ""
 
+                		# 0 for random output selection, and 1 for sequential
 				if outputObjectMode == 0:
 					outputShard = getRandomShard()
 					strOutput = str(getNextOutputObject(outputShard))
 				else:
-					strOutput = str(getNextOutputObjectSequential());
-					
+					theObject = getNextOutputObjectSequential()
+					strOutput = str(theObject)	
+					outputShard = mapObjectToShard(theObject)
+
+				outputShards.add(outputShard)
 				outputs = outputs + strOutput + delimiter
 
-		# Bano: This is old code that used to sequentially pick outputs from shards
+                	if createDummyObjects == 1:
+                    		outputOnlyShards = outputShards - inputShards # shards that only occur in output
+                
+                    		# Include dummy objects from all the outputOnly shards
+                    		counter = 0
+                    		for eachShard in outputOnlyShards: # add dummy objects to inputs for output-only shards
+                        		counter += 1
+                        		inputObject = getNextInputObject(eachShard)
+                        		inputs = inputs + ";" + str(inputObject)
+                    
+                # Bano: This is old code that used to sequentially pick outputs from shards
 		#	for k in range(numOutputs):
 		#		delimiter = ";"
 		#		# don't put delimiter after the last output
@@ -225,7 +239,8 @@ def genTransactionFile():
             	#
 		#	line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
 		
-		else:
+		# add all or up to numDummyObjects non-input shards to the output
+		else: #createDummyObjects is implicitly assumed to be true in this case
 			nonInputShards = allShards - inputShards
             
 			# Include dummy objects from all the non-input shards
@@ -258,6 +273,7 @@ def genTransactionFile():
 		outFile.write(line)
         
 		inputShards.clear()
+		outputShards.clear()
     
 	# Close file
 	outFile.close()
