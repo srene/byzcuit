@@ -41,17 +41,17 @@ def genObjectFiles():
 		shardFileName = path+"test_objects"+str(i)+".txt"
 		shardFile = open(shardFileName, "w")
 		outFiles.append(shardFile)
-
+    
 	# Write objects and their status to corresponding files
 	for j in range(1, numObjects+1):
 		fileIndex = mapObjectsToShard(j)
-
+        
 		line = str(j)+"\t0" #object<\t>status
-				# status is fixed to 0 (means CACTIVE)
+        # status is fixed to 0 (means CACTIVE)
 		if j != 1:
 			outFiles[fileIndex].write("\n")
 		outFiles[fileIndex].write(line)
-
+    
 	# Close files
 	for k in range(numShards):
 		outFiles[k].close()
