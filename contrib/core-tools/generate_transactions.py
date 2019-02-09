@@ -1,4 +1,4 @@
-# ==================
+
 # This script generates a file "test_transactions.txt" containing
 # transactions to test. This file is used by the client to submit
 # transactions from a file for testing purposes. Files have format:
@@ -11,16 +11,16 @@ import random
 import sys
 
 # FIXME: How many shards
-numShards=2
+numShards=5
 
 # FIXME: How many transactions
 numTransactions=100
 
 # FIXME: How many inputs per transaction
-numInputs=1
+numInputs=2
 
 # FIXME: How many outputs per transaction
-numOutputs=1
+numOutputs=3
 
 # FIXME: Path where to write the output files
 path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceClientConfig/"
@@ -28,7 +28,11 @@ path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceC
 # FIXME: Used to seed output object generator
 # Choose a large number, greater than the input objects generated
 # to avoid overwriting input objects
-outputObjectCounter=1000000000
+outputObjectCounterIndex=1000000000
+
+# This is indexed by shard ID and value represents the next
+# unused output object in this shard
+outputObjectCounter = []
 
 # FIXME: Used to seed transaction ID generator
 transactionIDCounter=1
@@ -40,7 +44,12 @@ inputObjectCounter = []
 
 # Mode 0: means that input objects will be chosen from random shards
 # Mode 1: means that input objects will be sequentially chosen from shards in round robin
-inputObjectMode = 1
+inputObjectMode = 0
+
+
+# Mode 0: means that output objects will be chosen from random shards
+# Mode 1: means that output objects will be sequentially chosen from shards in round robin
+outputObjectMode = 0
 
 # Used in getNextShard to get shards sequentially
 nextShardCounter = 1
@@ -55,30 +64,31 @@ createDummyObjects = 1
 # How many dummy objects to add
 # a positive integer X means add 0 to X dummy objects, depending on the number of non-input shards
 # -1 means will add as many dummy objects as there are non-input shards
-numDummyObjects = 1
+numDummyObjects = 2
 
-def config(newNumShards, newNumTransactions, newNumInputs, newNumOutputs, newPath, newOutputObjectCounter=outputObjectCounter, newTransactionIDCounter=transactionIDCounter, newInputObjectMode=inputObjectMode, newCreateDummyObjects=createDummyObjects, newNumDummyObjects=numDummyObjects):
+def config(newNumShards, newNumTransactions, newNumInputs, newNumOutputs, newPath, newOutputObjectCounter=outputObjectCounter, newTransactionIDCounter=transactionIDCounter, newInputObjectMode=inputObjectMode, newCreateDummyObjects=createDummyObjects, newNumDummyObjects=numDummyObjects, newOutputObjectMode=outputObjectMode):
 	global numShards
 	global numTransactions
 	global numInputs
 	global numOutputs
 	global path
-	global outputObjectCounter
+	global outputObjectCounterIndex
 	global transactionIDCounter
 	global inputObjectMode
 	global createDummyObjects
 	global numDummyObjects
+	global outputObjectMode
 	numShards = newNumShards
 	numTransactions = newNumTransactions
 	numInputs = newNumInputs
 	numOutputs = newNumOutputs
 	path = newPath
-	outputObjectCounter = newOutputObjectCounter
+	outputObjectCounterIndex = newOutputObjectCounterIndex
 	transactionIDCounter = newTransactionIDCounter
 	inputObjectMode = newInputObjectMode
 	createDummyObjects = newCreateDummyObjects
 	numDummyObjects = newNumDummyObjects
-
+	outputObjectMode = newOutputObjectMode
 
 def initAllShards():
 	global numShards
@@ -94,16 +104,31 @@ def initInputObjectCounter():
 	for i in range(1,numShards):
 		inputObjectCounter[i] = i % numShards
 
+
+def initOutputObjectCounter():
+	global numShards
+	global outputObjectCounter
+	outputObjectCounter = [None] * numShards
+
+	for i in range(0,numShards):
+		outputObjectCounter[i] = outputObjectCounterIndex + i
+
 def getNextInputObject(shardID):
 	global inputObjectCounter
 	nextObject = inputObjectCounter[shardID]
 	inputObjectCounter[shardID]+=numShards
 	return nextObject
 
-def getNextOutputObject():
+def getNextOutputObject(shardID):
 	global outputObjectCounter
-	nextObject = outputObjectCounter
-	outputObjectCounter += 1
+	nextObject = outputObjectCounter[shardID]
+	outputObjectCounter[shardID]+=numShards
+	return nextObject
+
+def getNextOutputObjectSequential():
+	global outputObjectCounterIndex
+	nextObject = outputObjectCounterIndex
+	outputObjectCounterIndex += 1
 	return nextObject
 
 def getNextTransactionID():
@@ -132,8 +157,9 @@ def genTransactionFile():
 	# Initialise the set of all shard IDs
 	initAllShards()
     
-	# Initialise input object counters
+	# Initialise input and output object counters
 	initInputObjectCounter()
+	initOutputObjectCounter()
     
 	inputShards = set()
     
@@ -167,19 +193,37 @@ def genTransactionFile():
 		outputs = ""
         
 		if createDummyObjects == 0:
-			for k in range(numOutputs):
+			outputs = ""
+			for j in range(numOutputs):
 				delimiter = ";"
 				# don't put delimiter after the last output
-				if k == numOutputs-1:
+				if j == numOutputs-1:
 					delimiter = ""
-                
-				outputs = outputs + str(getNextOutputObject()) + delimiter
-            
-			endOfLine = "\n"
-			if i == numTransactions-1:
-				endOfLine = ""
-            
-			line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
+				
+				strOutput = ""
+
+				if outputObjectMode == 0:
+					outputShard = getRandomShard()
+					strOutput = str(getNextOutputObject(outputShard))
+				else:
+					strOutput = str(getNextOutputObjectSequential());
+					
+				outputs = outputs + strOutput + delimiter
+
+		# Bano: This is old code that used to sequentially pick outputs from shards
+		#	for k in range(numOutputs):
+		#		delimiter = ";"
+		#		# don't put delimiter after the last output
+		#		if k == numOutputs-1:
+		#			delimiter = ""
+                #
+		#		outputs = outputs + str(getNextOutputObjectSequential()) + delimiter
+            	#
+		#	endOfLine = "\n"
+		#	if i == numTransactions-1:
+		#		endOfLine = ""
+            	#
+		#	line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
 		
 		else:
 			nonInputShards = allShards - inputShards
@@ -189,9 +233,9 @@ def genTransactionFile():
 			for eachShard in nonInputShards:
 				counter += 1
 				
-				outputObject = getNextOutputObject()
+				outputObject = getNextOutputObjectSequential()
 				while mapObjectToShard(outputObject) != eachShard:
-					outputObject = getNextOutputObject()
+					outputObject = getNextOutputObjectSequential()
                 
 				inputObject = getNextInputObject(eachShard)
 				inputs = inputs + ";" + str(inputObject)
@@ -223,5 +267,5 @@ def genTransactionFile():
 # =============
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
-		config(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8])
+		config(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9])
 	genTransactionFile()
