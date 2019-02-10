@@ -66,7 +66,7 @@ class Tester(object):
 
                 num_transactions = max_batch*3
 
-                self.network.config_core(2, 4)
+                self.network.config_core(5, 4)
                 self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                 self.network.start_core()
                 time.sleep(10)
