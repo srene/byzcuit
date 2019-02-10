@@ -431,8 +431,8 @@ if __name__ == '__main__':
         print t.measure_client_latency(min_batch, max_batch, batch_step, runs, defences=True)
     elif sys.argv[1] == 'bano':
         num_shards = int(sys.argv[2])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        runs = int(sys.argv[3])
+        outfile = sys.argv[4]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
