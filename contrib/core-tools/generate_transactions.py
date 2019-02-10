@@ -11,7 +11,7 @@ import random
 import sys
 
 # FIXME: How many shards
-numShards=4
+numShards=2
 
 # FIXME: How many transactions
 numTransactions=100
@@ -20,7 +20,7 @@ numTransactions=100
 numInputs=2
 
 # FIXME: How many outputs per transaction
-numOutputs=2
+numOutputs=1
 
 # FIXME: Path where to write the output files
 path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceClientConfig/"
@@ -50,7 +50,7 @@ inputObjectMode = 0
 # Mode 0: means that output objects will be chosen from random shards
 # Mode 1: means that output objects will be sequentially chosen from shards in round robin
 # Mode -1: means that numDummyObjects (= non-input shards) will be added to transaction; (assuming createDummyObjects = 1)
-outputObjectMode = -1
+outputObjectMode = 0
 
 # Used in getNextShard to get shards sequentially
 nextShardCounter = 1

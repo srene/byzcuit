@@ -54,7 +54,7 @@ public class MapClient implements Map<String, String> {
                                                                           // be always unique (as per class TomSender),
                                                                           // Val is the shard IDs that have responded with
                                                                           // PREPARED_T_COMMIT so far.
-    public HashMap<String, HashSet<Integer>> asynchRepliesAcceptedCommit = null; // indexed by (clientID,requestID,requestType)
+    //public HashMap<String, HashSet<Integer>> asynchRepliesAcceptedCommit = null; // indexed by (clientID,requestID,requestType)
                                                                           // concatenated into a string which will
                                                                           // be always unique (as per class TomSender),
                                                                           // Val is the shard IDs that have responded with
@@ -94,7 +94,7 @@ public class MapClient implements Map<String, String> {
         targetShards = new HashMap<>();
         transactions = new HashMap<>();
         asynchRepliesPreparedCommit = new HashMap<>();
-        asynchRepliesAcceptedCommit  = new HashMap<>();
+        //asynchRepliesAcceptedCommit  = new HashMap<>();
     }
 
     public int mapObjectToShard(String object) {
@@ -700,7 +700,7 @@ public class MapClient implements Map<String, String> {
         try {
             // Initialize the replies map, to collect shard replies for this transaction
             HashSet newSet = new HashSet<Integer>(); // empty shard set
-            asynchRepliesAcceptedCommit.put(t.id, newSet); // No shards have replied yet with PREPARED_T_COMMIT
+            //asynchRepliesAcceptedCommit.put(t.id, newSet); // No shards have replied yet with PREPARED_T_COMMIT
             // Update transaction sequence
             if( msgType == RequestType.ACCEPT_T_COMMIT )
                 sequences.get(transactionID).ACCEPT_T_COMMIT = true;
@@ -809,7 +809,7 @@ public class MapClient implements Map<String, String> {
                                         latencylog.justLog(Long.toString(System.currentTimeMillis() - txSentTimes.get(this.transactionID)));
                                         logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been committed (ACCEPTED_T_COMMITTED)");
                                         sequences.get(transactionID).ACCEPTED_T_COMMIT = true; // Update transaction sequence
-                                        asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
+                                        //asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
 
                                         // >>>>> Send CREATE_OBJECT to relevant shards asynchronously
                                         // (this will spawn new threads; see createObjects()) <<<<<<<
@@ -821,7 +821,7 @@ public class MapClient implements Map<String, String> {
                                         // cleanup
                                         logMsg(strLabel, strModule, "Transaction ID " + transactionID + "has been aborted (ACCEPTED_T_ABORT)");
                                         sequences.get(transactionID).ACCEPTED_T_ABORT = true; // Update transaction sequence
-                                        asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
+                                        //asynchRepliesAcceptedCommit.remove(transactionID); // no longer waiting for any replies
                                     }
                                 }
                             }
