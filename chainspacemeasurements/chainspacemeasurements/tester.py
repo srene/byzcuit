@@ -72,7 +72,7 @@ class Tester(object):
                 time.sleep(10)
                 self.start_clients()
                 time.sleep(10)
-                dumper.simulation_batched(self.network, inputs_per_tx=1, outputs_per_tx=4, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
+                dumper.simulation_batched(self.network, inputs_per_tx=2, outputs_per_tx=5, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
                 time.sleep(20)
                 self.stop_clients()
                 self.network.stop_core()
@@ -188,6 +188,75 @@ class Tester(object):
         return tps_sets_sets
 
     def measure_input_scaling(self, num_shards, min_inputs, max_inputs, runs, case=None, defences=False):
+        if defences:
+            create_dummy_objects = 1
+        else:
+            create_dummy_objects = 0
+        tps_sets_sets = []
+        for num_inputs in range(min_inputs, max_inputs+1):
+            tps_sets = []
+
+            if case is None:
+                shards_per_tx = None
+            elif case == 'best':
+                shards_per_tx = 1
+            elif case == 'worst':
+                shards_per_tx = num_shards
+
+            for i in range(runs):
+                try:
+                    print "Running measurements for {2} inputs across {0} shards (run {1}).".format(num_shards, i, num_inputs)
+                    self.network.config_core(num_shards, 4)
+                    self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                    self.network.start_core()
+
+                    time.sleep(10)
+                    self.start_clients()
+                    time.sleep(10)
+                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=create_dummy_objects)
+                    time.sleep(20)
+                    self.stop_clients()
+
+                    txes = {}
+                    logs = self.network.get_r0_logs()
+                    for log in logs:
+                        for line in log.splitlines():
+                            line = line.strip()
+                            if line == '':
+                                continue
+                            records = line.split()
+                            if records[1] not in txes:
+                                txes[records[1]] = int(records[0])
+
+                    tps_set = self.network.get_tpsm_set()
+                    tps_sets.append(tps_set)
+                    print "Result for {0} shards (run {1}): {2}".format(num_shards, i, tps_set)
+                except Exception:
+                    traceback.print_exc()
+                finally:
+                    try:
+                        self.network.stop_core()
+                        time.sleep(2)
+                        self.network.clean_state_core(SHARD)
+                    except:
+                        # reset connection
+                        for i in range(5):
+                            try:
+                                self.network.ssh_close()
+                                self.network.ssh_connect()
+                                self.network.stop_core()
+                                time.sleep(2)
+                                self.network.clean_state_core(SHARD)
+                                break
+                            except:
+                                time.sleep(5)
+
+            tps_sets_sets.append(tps_sets)
+
+        self.outfh.write(json.dumps(tps_sets_sets))
+        return tps_sets_sets
+
+    def measure_bano(self, num_shards, min_inputs, max_inputs, runs, case=None, defences=False):
         if defences:
             create_dummy_objects = 1
         else:
