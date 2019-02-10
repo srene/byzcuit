@@ -213,7 +213,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=create_dummy_objects)
+                    dumper.simulation_batched(self.network, num_inputs, 1, create_dummy_objects=create_dummy_objects)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -256,25 +256,14 @@ class Tester(object):
         self.outfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_bano(self, num_shards, min_inputs, max_inputs, runs, case=None, defences=False):
-        if defences:
-            create_dummy_objects = 1
-        else:
-            create_dummy_objects = 0
+    def measure_bano(self, num_shards, runs):
         tps_sets_sets = []
-        for num_inputs in range(min_inputs, max_inputs+1):
+        for num_dummies in range(1, num_shards+1):
             tps_sets = []
-
-            if case is None:
-                shards_per_tx = None
-            elif case == 'best':
-                shards_per_tx = 1
-            elif case == 'worst':
-                shards_per_tx = num_shards
 
             for i in range(runs):
                 try:
-                    print "Running measurements for {2} inputs across {0} shards (run {1}).".format(num_shards, i, num_inputs)
+                    print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
                     self.network.config_core(num_shards, 4)
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     self.network.start_core()
@@ -282,7 +271,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=create_dummy_objects)
+                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=1, num_dummy_objects=num_dummies, output_object_mode=-1)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -299,7 +288,7 @@ class Tester(object):
 
                     tps_set = self.network.get_tpsm_set()
                     tps_sets.append(tps_set)
-                    print "Result for {0} shards (run {1}): {2}".format(num_shards, i, tps_set)
+                    print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
                 except Exception:
                     traceback.print_exc()
                 finally:
@@ -440,3 +429,12 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_client_latency(min_batch, max_batch, batch_step, runs, defences=True)
+    elif sys.argv[1] == 'bano':
+        num_shards = int(sys.argv[2])
+        runs = int(sys.argv[5])
+        outfile = sys.argv[6]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_bano(num_shards, runs)
