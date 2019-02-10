@@ -400,7 +400,7 @@ class ChainspaceNetwork(object):
                 if line:
                     latencies.append(int(line))
 
-        return [numpy.median(latencies), numpy.std(latencies)]
+        return latencies
 
 
 def _multi_args_wrapper(args):
