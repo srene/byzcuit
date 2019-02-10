@@ -271,7 +271,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 0, create_dummy_objects=1, num_dummy_objects=num_dummies, output_object_mode=-1)
+                    dumper.simulation_batched(self.network, 1, 1, create_dummy_objects=1, num_dummy_objects=num_dummies, output_object_mode=-1)
                     time.sleep(20)
                     self.stop_clients()
 
