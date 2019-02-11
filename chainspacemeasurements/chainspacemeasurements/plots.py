@@ -75,7 +75,7 @@ def plot_shard_scaling3(results1, results2, outfile):
     parsed_results1 = parse_shard_results(results1)
     parsed_results2 = parse_shard_results(results2)
     pyplot.xlabel('Number of shards')
-    pyplot.ylabel('Average transactions / second')
+    pyplot.ylabel('Transactions / second')
     pyplot.grid(True)
 
     pyplot.errorbar(
