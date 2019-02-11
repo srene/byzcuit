@@ -72,7 +72,7 @@ class Tester(object):
                 time.sleep(10)
                 self.start_clients()
                 time.sleep(10)
-                dumper.simulation_batched(self.network, inputs_per_tx=2, outputs_per_tx=5, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
+                dumper.simulation_batched(self.network, inputs_per_tx=2, outputs_per_tx=10, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
                 time.sleep(20)
                 self.stop_clients()
                 self.network.stop_core()
@@ -213,7 +213,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 1, create_dummy_objects=create_dummy_objects)
+                    dumper.simulation_batched(self.network, num_inputs, 10, create_dummy_objects=create_dummy_objects)
                     time.sleep(20)
                     self.stop_clients()
 
