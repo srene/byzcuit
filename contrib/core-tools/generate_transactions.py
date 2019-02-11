@@ -11,16 +11,16 @@ import random
 import sys
 
 # FIXME: How many shards
-numShards=2
+numShards=3
 
 # FIXME: How many transactions
 numTransactions=100
 
 # FIXME: How many inputs per transaction
-numInputs=2
+numInputs=1
 
 # FIXME: How many outputs per transaction
-numOutputs=1
+numOutputs=2
 
 # FIXME: Path where to write the output files
 path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceClientConfig/"
@@ -241,12 +241,14 @@ def genTransactionFile():
 
 			# Include dummy objects from all the non-input shards
 			counter = 0
-			for eachShard in nonInputShards:
+
+			l_nonInputShards = list(nonInputShards)
+			random.shuffle(l_nonInputShards) # randomize the order of shards
+
+			for eachShard in l_nonInputShards:
 				counter += 1
 
-				outputObject = getNextOutputObjectSequential()
-				while mapObjectToShard(outputObject) != eachShard:
-					outputObject = getNextOutputObjectSequential()
+				outputObject = getNextOutputObject(eachShard)
 
 				inputObject = getNextInputObject(eachShard)
 				inputs = inputs + ";" + str(inputObject)
