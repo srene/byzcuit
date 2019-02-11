@@ -120,7 +120,24 @@ def plot_shard_scaling3(results1, results2, outfile):
 def plot_input_scaling(results, outfile):
     parsed_results = parse_shard_results(results)
     pyplot.xlabel('Number of inputs per transaction')
-    pyplot.ylabel('Average transactions / second')
+    pyplot.ylabel('Transactions / second')
+    pyplot.grid(True)
+
+    pyplot.errorbar(
+        range(1, len(parsed_results)+1),
+        [i[0] for i in parsed_results],
+        [i[1] for i in parsed_results],
+        marker='o',
+    )
+
+    pyplot.savefig(outfile)
+    pyplot.close()
+
+
+def plot_input_scaling(results, outfile):
+    parsed_results = parse_shard_results(results)
+    pyplot.xlabel('Number of dummy outputs per transaction')
+    pyplot.ylabel('Transactions / second')
     pyplot.grid(True)
 
     pyplot.errorbar(
@@ -231,6 +248,9 @@ if __name__ == '__main__':
         results2 = json.loads(open(sys.argv[3]).read())
         plot_shard_scaling3(results1, results2, sys.argv[4])
     elif sys.argv[1] == 'inputscaling':
+        results = json.loads(open(sys.argv[2]).read())
+        plot_input_scaling(results, sys.argv[3])
+    elif sys.argv[1] == 'bano':
         results = json.loads(open(sys.argv[2]).read())
         plot_input_scaling(results, sys.argv[3])
     elif sys.argv[1] == 'nodescaling':
