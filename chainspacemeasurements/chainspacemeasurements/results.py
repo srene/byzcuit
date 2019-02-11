@@ -32,3 +32,18 @@ def parse_client_latency_results(results):
         final_result.append(latencies)
 
     return final_result
+
+
+def parse_client_latency2_results(results):
+    final_result = []
+    for tps in results:
+        latencies = []
+        for latency_set in tps:
+            latencies += latency_set
+
+        median = numpy.median(latencies)
+        sd = numpy.std(latencies)
+
+        final_result.append((median, numpy.percentile(latencies, 26), numpy.percentile(latencies, 74)))
+
+    return final_result

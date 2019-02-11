@@ -4,7 +4,7 @@ import sys
 from matplotlib import pyplot
 from matplotlib import markers
 
-from chainspacemeasurements.results import parse_shard_results, parse_client_latency_results
+from chainspacemeasurements.results import parse_shard_results, parse_client_latency_results, parse_client_latency2_results
 
 
 def plot_shard_scaling(results, outfile):
@@ -172,6 +172,52 @@ def plot_client_latency(results, outfile, start_tps, step):
     pyplot.close()
 
 
+def plot_client_latency2(results1, results2, outfile, start_tps, step):
+    parsed_results1 = parse_client_latency2_results(results1)
+    parsed_results2 = parse_client_latency2_results(results2)
+    pyplot.xlabel('Transactions / second per shard')
+    pyplot.ylabel('Client-perceived latency')
+    pyplot.grid(True)
+
+    pyplot.errorbar(
+        [i for i in range(start_tps, len(parsed_results1)*step+start_tps, step)],
+        [i[0] for i in parsed_results1],
+        [0 for i in parsed_results1],
+        marker='o',
+        color='C0',
+        label='Without defences'
+    )
+
+    pyplot.errorbar(
+        [i-0.5 for i in range(start_tps, len(parsed_results1)*step+start_tps, step)],
+        [i[0] for i in parsed_results1],
+        yerr=([i[1] for i in parsed_results1], [i[2] for i in parsed_results1]),
+        color='C0',
+        fmt=''
+    )
+
+    pyplot.errorbar(
+        [i for i in range(start_tps, len(parsed_results1)*step+start_tps, step)],
+        [i[0] for i in parsed_results2],
+        [0 for i in parsed_results2],
+        marker='s',
+        color='C1',
+        label='With defences'
+    )
+
+    pyplot.errorbar(
+        [i+0.5 for i in range(start_tps, len(parsed_results1)*step+start_tps, step)],
+        [i[0] for i in parsed_results2],
+        [i[1] for i in parsed_results2],
+        color='C1',
+        fmt=''
+    )
+
+    pyplot.legend(loc=4)
+    pyplot.savefig(outfile)
+    pyplot.close()
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'shardscaling':
         results = json.loads(open(sys.argv[2]).read())
@@ -193,3 +239,7 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'clientlatency':
         results = json.loads(open(sys.argv[2]).read())
         plot_client_latency(results, sys.argv[3], int(sys.argv[4]), int(sys.argv[5]))
+    elif sys.argv[1] == 'clientlatency2':
+        results1 = json.loads(open(sys.argv[2]).read())
+        results2 = json.loads(open(sys.argv[3]).read())
+        plot_client_latency2(results1, results2, sys.argv[4], int(sys.argv[5]), int(sys.argv[6]))
