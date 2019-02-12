@@ -134,7 +134,7 @@ def plot_input_scaling(results, outfile):
     pyplot.close()
 
 
-def plot_input_scaling(results, outfile):
+def plot_bano(results, outfile):
     parsed_results = parse_shard_results(results)
     pyplot.xlabel('Number of dummy outputs per transaction')
     pyplot.ylabel('Transactions / second')
@@ -147,6 +147,52 @@ def plot_input_scaling(results, outfile):
         marker='o',
     )
 
+    pyplot.savefig(outfile)
+    pyplot.close()
+
+
+def plot_input_scaling2(results1, results2, outfile):
+    parsed_results1 = parse_shard_results(results1)
+    parsed_results2 = parse_shard_results(results2)
+    pyplot.xlabel('Number of inputs per transaction')
+    pyplot.ylabel('Transactions / second')
+    pyplot.grid(True)
+
+    pyplot.errorbar(
+        [i for i in range(1, len(parsed_results1)+1)],
+        [i[0] for i in parsed_results1],
+        [0 for i in parsed_results1],
+        marker='o',
+        color='C0',
+        label='Without defences'
+    )
+
+    pyplot.errorbar(
+        [i-0.03 for i in range(1, len(parsed_results1)+1)],
+        [i[0] for i in parsed_results1],
+        [i[1] for i in parsed_results1],
+        color='C0',
+        fmt=''
+    )
+
+    pyplot.errorbar(
+        [i for i in range(1, len(parsed_results2)+1)],
+        [i[0] for i in parsed_results2],
+        [0 for i in parsed_results2],
+        marker='s',
+        color='C1',
+        label='With defences'
+    )
+
+    pyplot.errorbar(
+        [i+0.03 for i in range(1, len(parsed_results2)+1)],
+        [i[0] for i in parsed_results2],
+        [i[1] for i in parsed_results2],
+        color='C1',
+        fmt=''
+    )
+
+    pyplot.legend(loc=4)
     pyplot.savefig(outfile)
     pyplot.close()
 
@@ -193,7 +239,7 @@ def plot_client_latency2(results1, results2, outfile, start_tps, step):
     parsed_results1 = parse_client_latency2_results(results1)
     parsed_results2 = parse_client_latency2_results(results2)
     pyplot.xlabel('Transactions / second per shard')
-    pyplot.ylabel('Client-perceived latency')
+    pyplot.ylabel('Client-perceived latency (ms)')
     pyplot.grid(True)
 
     pyplot.errorbar(
@@ -250,9 +296,13 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'inputscaling':
         results = json.loads(open(sys.argv[2]).read())
         plot_input_scaling(results, sys.argv[3])
+    elif sys.argv[1] == 'inputscaling2':
+        results1 = json.loads(open(sys.argv[2]).read())
+        results2 = json.loads(open(sys.argv[3]).read())
+        plot_input_scaling2(results1, results2, sys.argv[4])
     elif sys.argv[1] == 'bano':
         results = json.loads(open(sys.argv[2]).read())
-        plot_input_scaling(results, sys.argv[3])
+        plot_bano(results, sys.argv[3])
     elif sys.argv[1] == 'nodescaling':
         results = json.loads(open(sys.argv[2]).read())
         plot_node_scaling(results, sys.argv[3], int(sys.argv[4]))
