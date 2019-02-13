@@ -187,7 +187,7 @@ class Tester(object):
         self.outfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_input_scaling(self, num_shards, min_inputs, max_inputs, runs, case=None, defences=False):
+    def measure_input_scaling(self, num_shards, min_inputs, max_inputs, num_outputs, runs, case=None, defences=False):
         if defences:
             create_dummy_objects = 1
         else:
@@ -213,7 +213,7 @@ class Tester(object):
                     time.sleep(10)
                     self.start_clients()
                     time.sleep(10)
-                    dumper.simulation_batched(self.network, num_inputs, 5, create_dummy_objects=create_dummy_objects)
+                    dumper.simulation_batched(self.network, num_inputs, num_outputs, create_dummy_objects=create_dummy_objects)
                     time.sleep(20)
                     self.stop_clients()
 
@@ -365,24 +365,26 @@ if __name__ == '__main__':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
         max_inputs = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        num_outputs = int(sys.argv[5])
+        runs = int(sys.argv[6])
+        outfile = sys.argv[7]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
 
-        print t.measure_input_scaling(num_shards, min_inputs, max_inputs, runs)
+        print t.measure_input_scaling(num_shards, min_inputs, max_inputs, num_outputs, runs)
     elif sys.argv[1] == 'inputscaling_d':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
         max_inputs = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        num_outputs = int(sys.argv[5])
+        runs = int(sys.argv[6])
+        outfile = sys.argv[7]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
 
-        print t.measure_input_scaling(num_shards, min_inputs, max_inputs, runs, defences=True)
+        print t.measure_input_scaling(num_shards, min_inputs, max_inputs, num_outputs, runs, defences=True)
     elif sys.argv[1] == 'inputscaling_f':
         num_shards = int(sys.argv[2])
         min_inputs = int(sys.argv[3])
@@ -420,18 +422,21 @@ if __name__ == '__main__':
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
 
-        print t.measure_client_latency(min_batch, max_batch, batch_step, runs)
+        print t.measure_client_latency(shards, inputs, outputs, min_batch, max_batch, batch_step, runs)
     elif sys.argv[1] == 'clientlatency_d':
-        min_batch = int(sys.argv[2])
-        max_batch = int(sys.argv[3])
-        batch_step = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        shards = int(sys.argv[2])
+        inputs = int(sys.argv[3])
+        outputs = int(sys.argv[4])
+        min_batch = int(sys.argv[5])
+        max_batch = int(sys.argv[6])
+        batch_step = int(sys.argv[7])
+        runs = int(sys.argv[8])
+        outfile = sys.argv[9]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
 
-        print t.measure_client_latency(min_batch, max_batch, batch_step, runs, defences=True)
+        print t.measure_client_latency(shards, inputs, outputs, min_batch, max_batch, batch_step, runs, defences=True)
     elif sys.argv[1] == 'bano':
         num_shards = int(sys.argv[2])
         runs = int(sys.argv[3])
