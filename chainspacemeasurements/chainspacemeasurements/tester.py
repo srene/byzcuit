@@ -217,17 +217,6 @@ class Tester(object):
                     time.sleep(20)
                     self.stop_clients()
 
-                    txes = {}
-                    logs = self.network.get_r0_logs()
-                    for log in logs:
-                        for line in log.splitlines():
-                            line = line.strip()
-                            if line == '':
-                                continue
-                            records = line.split()
-                            if records[1] not in txes:
-                                txes[records[1]] = int(records[0])
-
                     tps_set = self.network.get_tpsm_set()
                     tps_sets.append(tps_set)
                     print "Result for {0} shards (run {1}): {2}".format(num_shards, i, tps_set)
@@ -274,17 +263,6 @@ class Tester(object):
                     dumper.simulation_batched(self.network, 1, 1, create_dummy_objects=1, num_dummy_objects=num_dummies, output_object_mode=-1)
                     time.sleep(20)
                     self.stop_clients()
-
-                    txes = {}
-                    logs = self.network.get_r0_logs()
-                    for log in logs:
-                        for line in log.splitlines():
-                            line = line.strip()
-                            if line == '':
-                                continue
-                            records = line.split()
-                            if records[1] not in txes:
-                                txes[records[1]] = int(records[0])
 
                     tps_set = self.network.get_tpsm_set()
                     tps_sets.append(tps_set)
