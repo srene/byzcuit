@@ -316,8 +316,8 @@ class ChainspaceNetwork(object):
         self.ssh_exec_in_clients(self._config_shards_command('/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig'))
 
     def start_clients(self):
-        command += 'cd ~/chainspace/chainspacecore;'
-        command = 'rm screenlog.0;'
+        command = 'cd ~/chainspace/chainspacecore;'
+        command += 'rm screenlog.0;'
         command += 'rm latencylog;'
         command += 'screen -dmSL clientservice ./runclientservice.sh;'
         command += 'cd;'
