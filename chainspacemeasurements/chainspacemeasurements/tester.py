@@ -39,7 +39,7 @@ class Tester(object):
         network.clean_state_core(SHARD)
 
     def start_clients(self):
-        self.network.config_clients(len(self.network.shards)*4)
+        self.network.config_clients(len(self.network.shards)*8)
         n.start_clients()
 
     def stop_clients(self):
