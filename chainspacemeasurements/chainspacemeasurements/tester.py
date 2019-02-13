@@ -52,7 +52,7 @@ class Tester(object):
     def stop_tcpdump(self):
         os.system('sudo killall tcpdump')
 
-    def measure_client_latency(self, min_batch, max_batch, batch_step, runs, defences=False):
+    def measure_client_latency(self, shards, inputs, outputs, min_batch, max_batch, batch_step, runs, defences=False):
         if defences:
             create_dummy_objects = 1
         else:
@@ -66,13 +66,13 @@ class Tester(object):
 
                 num_transactions = max_batch*3
 
-                self.network.config_core(5, 4)
+                self.network.config_core(shards, 4)
                 self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                 self.network.start_core()
                 time.sleep(10)
                 self.start_clients()
                 time.sleep(10)
-                dumper.simulation_batched(self.network, inputs_per_tx=2, outputs_per_tx=10, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
+                dumper.simulation_batched(self.network, inputs_per_tx=inputs, outputs_per_tx=outputs, batch_size=batch_size, batch_sleep=1, num_transactions=num_transactions, create_dummy_objects=create_dummy_objects)
                 time.sleep(20)
                 self.stop_clients()
                 self.network.stop_core()
@@ -408,11 +408,14 @@ if __name__ == '__main__':
 
         print t.measure_node_scaling(num_shards, min_nodes, max_nodes, runs, step=step)
     elif sys.argv[1] == 'clientlatency':
-        min_batch = int(sys.argv[2])
-        max_batch = int(sys.argv[3])
-        batch_step = int(sys.argv[4])
-        runs = int(sys.argv[5])
-        outfile = sys.argv[6]
+        shards = int(sys.argv[2])
+        inputs = int(sys.argv[3])
+        outputs = int(sys.argv[4])
+        min_batch = int(sys.argv[5])
+        max_batch = int(sys.argv[6])
+        batch_step = int(sys.argv[7])
+        runs = int(sys.argv[8])
+        outfile = sys.argv[9]
 
         n = ChainspaceNetwork(0)
         t = Tester(n, outfile=outfile)
