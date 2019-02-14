@@ -247,7 +247,7 @@ class Tester(object):
 
     def measure_bano(self, num_shards, runs):
         tps_sets_sets = []
-        for num_dummies in range(1, num_shards+1):
+        for num_dummies in range(1, num_shards):
             tps_sets = []
 
             for i in range(runs):
