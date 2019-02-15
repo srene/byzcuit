@@ -3,6 +3,7 @@ import sys
 
 from matplotlib import pyplot
 from matplotlib import markers
+from matplotlib.ticker import FuncFormatter
 
 from chainspacemeasurements.results import parse_shard_results, parse_client_latency_results, parse_client_latency2_results
 
@@ -84,11 +85,11 @@ def plot_shard_scaling3(results1, results2, outfile):
         [0 for i in parsed_results1],
         marker='o',
         color='C0',
-        label='Without defences'
+        label='Without defenses'
     )
 
     pyplot.errorbar(
-        [i-0.03 for i in range(2, len(parsed_results1)+2)],
+        [i-0.01 for i in range(2, len(parsed_results1)+2)],
         [i[0] for i in parsed_results1],
         [i[1] for i in parsed_results1],
         color='C0',
@@ -101,17 +102,18 @@ def plot_shard_scaling3(results1, results2, outfile):
         [0 for i in parsed_results2],
         marker='s',
         color='C1',
-        label='With defences'
+        label='With defenses'
     )
 
     pyplot.errorbar(
-        [i+0.03 for i in range(2, len(parsed_results2)+2)],
+        [i+0.01 for i in range(2, len(parsed_results2)+2)],
         [i[0] for i in parsed_results2],
         [i[1] for i in parsed_results2],
         color='C1',
         fmt=''
     )
 
+    pyplot.locator_params(nbins=len(parsed_results1))
     pyplot.legend(loc=4)
     pyplot.savefig(outfile)
     pyplot.close()
@@ -136,7 +138,7 @@ def plot_input_scaling(results, outfile):
 
 def plot_bano(results, outfile):
     parsed_results = parse_shard_results(results)
-    pyplot.xlabel('Number of dummy outputs per transaction')
+    pyplot.xlabel('Number of dummy inputs per transaction')
     pyplot.ylabel('Transactions / second')
     pyplot.grid(True)
 
@@ -147,6 +149,7 @@ def plot_bano(results, outfile):
         marker='o',
     )
 
+    pyplot.locator_params(nbins=len(parsed_results))
     pyplot.savefig(outfile)
     pyplot.close()
 
@@ -164,7 +167,7 @@ def plot_input_scaling2(results1, results2, outfile):
         [0 for i in parsed_results1],
         marker='o',
         color='C0',
-        label='Without defences'
+        label='Without defenses'
     )
 
     pyplot.errorbar(
@@ -181,7 +184,7 @@ def plot_input_scaling2(results1, results2, outfile):
         [0 for i in parsed_results2],
         marker='s',
         color='C1',
-        label='With defences'
+        label='With defenses'
     )
 
     pyplot.errorbar(
@@ -238,7 +241,7 @@ def plot_client_latency(results, outfile, start_tps, step):
 def plot_client_latency2(results1, results2, outfile, start_tps, step):
     parsed_results1 = parse_client_latency2_results(results1)
     parsed_results2 = parse_client_latency2_results(results2)
-    pyplot.xlabel('Transactions / second per shard')
+    pyplot.xlabel('Transactions / second')
     pyplot.ylabel('Client-perceived latency (ms)')
     pyplot.grid(True)
 
@@ -248,7 +251,7 @@ def plot_client_latency2(results1, results2, outfile, start_tps, step):
         [0 for i in parsed_results1],
         marker='o',
         color='C0',
-        label='Without defences'
+        label='Without defenses'
     )
 
     pyplot.errorbar(
@@ -265,7 +268,7 @@ def plot_client_latency2(results1, results2, outfile, start_tps, step):
         [0 for i in parsed_results2],
         marker='s',
         color='C1',
-        label='With defences'
+        label='With defenses'
     )
 
     pyplot.errorbar(
