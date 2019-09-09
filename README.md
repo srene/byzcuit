@@ -1,2 +1,10 @@
 # Byzcuit
-Byzcuit is built as a fork of Chainspace.
+
+In our Jan'19 [draft](https://arxiv.org/abs/1901.11218) we present a family of replay attacks against sharded distributed ledgers, that target cross-shard consensus protocols, such as the recently proposed [Chainspace](https://sheharbano.com/assets/publications/ndss2018-chainspace.pdf) and [Omniledger](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8418625). These attacks allow an attacker, with network access only, to doublespend or lock resources with minimal efforts. The attacker can act independently without colluding with any nodes, and succeed even if all nodes are honest; most of the attacks can also exhibit themselves as faults under periods of asynchrony. 
+
+This is the prototype of Byzcuit---a new cross-shard consensus protocol we developed, that is immune to the replay attacks described above. Drawing insights from our analysis of performance tradeoffs and replay attack vulnerabilities in existing shard-led (e.g. Chainspace) and client-led (e.g. Omniledger) cross-shard consensus protocols, Byzcuit combines useful
+features from both these design approaches to achieve high performance and scalability, and is immune to replay attacks. 
+
+Byzcuit employs a Transaction Manager to coordinate cross-shard communication, reducing its cost to O(n)
+communication, between n shards, in the absence of faults. We implement a prototype of Byzcuit in Java as a fork of the [Chainspace code](https://github.com/chainspace), which we release here as an open-source project. We evaluated Byzcuit on a real cloud-based testbed
+under varying transaction loads and found that Byzcuit has a client-perceived latency of less than a second, even for a system load of 1000 transactions per second (tps). Byzcuit’s transaction throughput scales linearly with the number of shards by 250–300 tps for each shard added, handling up to 1550 tps with 10 shards—which is about 8 times higher than Chainspace with a similar setup. We quantified the overhead of our replay defenses and find that as expected those reduce the throughput by 20–250 tps. Read more about Byzcuit in our full [paper](https://arxiv.org/abs/1901.11218).
