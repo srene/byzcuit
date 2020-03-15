@@ -149,6 +149,8 @@ public class ConsoleClient {
                 // The shard ID provided by user at the console is ignored
                 case RequestType.TRANSACTION_SUBMIT:
 
+                    System.out.println("Transaction will be submitted to all relevant shards (not just the one provided at input!)");
+
                     Transaction t2 = new Transaction();
                     System.out.println("Enter transaction ID:");
                     input = console.nextLine();
@@ -253,10 +255,15 @@ public class ConsoleClient {
                     System.out.println("Doing CREATE_OBJECT");
                     Transaction t5 = new Transaction();
 
+                    /*
                     System.out.println("Enter transaction ID:");
                     input = console.nextLine();
                     t5.addID(input);
+                     */
 
+                    t5.addID("Dummy");
+
+                    /*
                     System.out.println("Enter inputs, one per line (type 'q' to stop):");
                     input = console.nextLine();
 
@@ -264,16 +271,21 @@ public class ConsoleClient {
                         t5.addInput(input);
                         input=console.nextLine();
                     }
+                     */
 
-                    System.out.println("Enter outputs, one per line (type 'q' to stop):");
+                    t5.addInput("Dummy");
+
+                    System.out.println("Enter objects, one per line (type 'q' to stop):");
                     input=console.nextLine();
                     while (!(input.equalsIgnoreCase("q"))) {
                         t5.addOutput(input);
                         input=console.nextLine();
                     }
 
+                    /*
                     System.out.println("Transaction whose outputs are to be created is:");
                     t5.print();
+                    */
 
                     client.createObjects(t5.outputs);
                     break;
