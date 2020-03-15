@@ -475,6 +475,7 @@ public class MapClient implements Map<String, String> {
                     if (m != null) {
                         byte[] reply = m.getContent();
                         String strRawReply = new String(reply, Charset.forName("UTF-8"));
+
                         String[] arrReply = strRawReply.split(";");
                         String strReply = arrReply[0];
                         tID = arrReply[1];
