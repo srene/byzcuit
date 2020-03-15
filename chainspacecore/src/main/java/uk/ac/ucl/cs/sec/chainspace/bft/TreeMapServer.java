@@ -141,7 +141,7 @@ public class TreeMapServer extends DefaultRecoverable {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Usage: HashMapServer <configuration file>");
+            System.out.println("Usage: TreeMapServer <configuration file>");
             System.exit(0);
         }
 
@@ -166,12 +166,16 @@ public class TreeMapServer extends DefaultRecoverable {
             ByteArrayInputStream in = new ByteArrayInputStream(command);
             ObjectInputStream ois = new ObjectInputStream(in);
             reqType = ois.readInt();
+
             //logMsg(strLabel,strModule,"Received a request of type "+ RequestType.getReqName(reqType));
+
             if (reqType == RequestType.PUT) {
                 String key = ois.readUTF();
                 String value = ois.readUTF();
+
                 String oldValue = table.put(key, value);
                 byte[] resultBytes = null;
+
                 if (oldValue != null) {
                     resultBytes = oldValue.getBytes();
                 }
@@ -290,9 +294,11 @@ public class TreeMapServer extends DefaultRecoverable {
             ByteArrayInputStream in = new ByteArrayInputStream(command);
             ObjectInputStream ois = new ObjectInputStream(in);
             reqType = ois.readInt();
+
             if (reqType == RequestType.GET) {
                 String key = ois.readUTF();
                 String readValue = table.get(key);
+
                 byte[] resultBytes = null;
                 if (readValue != null) {
                     resultBytes = readValue.getBytes();
@@ -426,7 +432,8 @@ public class TreeMapServer extends DefaultRecoverable {
                         // TODO: from replicas to convince the client that all replicas in the
                         // TODO: shard agree on the final decision
 
-                        strReplyAcceptT = strReplyAcceptT + ";" + t.getCsTransaction().getInputIDs()[0];
+                        //strReplyAcceptT = strReplyAcceptT + ";" + t.getCsTransaction().getInputIDs()[0];
+                        strReplyAcceptT = strReplyAcceptT + ";" + t.id;
                         return strReplyAcceptT.getBytes("UTF-8");
 
                     }
