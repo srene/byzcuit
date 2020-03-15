@@ -1,6 +1,8 @@
 #!/bin/bash
 rm -rf chainspacecore-*
 
+killall java
+
 screen -X -S s0n0 kill
 screen -X -S s0n1 kill
 screen -X -S s0n2 kill
