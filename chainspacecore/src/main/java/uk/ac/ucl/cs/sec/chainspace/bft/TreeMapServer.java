@@ -197,7 +197,7 @@ public class TreeMapServer extends DefaultRecoverable {
                 try {
                     Transaction t = (Transaction) ois.readObject();
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
-                    t.print();
+                    //t.print();
 
                     String reply = "";
                     /*
@@ -286,8 +286,8 @@ public class TreeMapServer extends DefaultRecoverable {
                     ArrayList<AccountObject> accountObjs = (ArrayList<AccountObject>) ois.readObject();
                     for(AccountObject acc: accountObjs) {
                         accounts.add(acc);
-
-                        logMsg(strLabel,strModule,"Created account "+acc.id);
+                        if(acc.isManaged(thisShard))
+                            logMsg(strLabel,strModule,"Created account "+acc.id);
                     }
                     accounts.print(thisShard);
                 }
@@ -376,8 +376,8 @@ public class TreeMapServer extends DefaultRecoverable {
                 try {
                     logMsg(strLabel,strModule,"Received request of type "+RequestType.getReqName(reqType));
                     Transaction t = (Transaction) ois.readObject();
-                    System.out.println("Transaction received is:");
-                    t.print();
+                    //System.out.println("Transaction received is:");
+                    //t.print();
 
                     // Early Reject: A transaction will only be processed again if the system
                     // previously aborted it. We do not process transactions that are already being

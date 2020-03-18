@@ -104,8 +104,6 @@ public class MapClient implements Map<String, String> {
             System.exit(-1);
         }
 
-        System.out.println("iObject is "+iObject);
-
         int shardID = iObject % numShards;
         //int shardID = iObject.mod(new BigInteger(Integer.toString(numShards))).intValue();
         logMsg(strLabel,strModule,"Mapped object "+object+" to shard "+shardID);
@@ -376,29 +374,6 @@ public class MapClient implements Map<String, String> {
         String strModule = "CREATE_ACCOUNT (DRIVER): ";
 
         try {
-            /*
-
-            HashMap<Integer,ArrayList<AccountObject>> shardToObjects = new HashMap<>(); // Accounts managed by a shard
-
-            // Group accounts by the managing shard
-            for(AccountObject accObj: accounts) {
-
-                int shardID = mapAccountToShard(accObj.id);
-
-                logMsg(strLabel,strModule,"Mapped account "+accObj.id+" to shard "+shardID);
-
-                if(shardID == -1) {
-                    logMsg(strLabel,strModule,"Cannot map account "+accObj.id+" to a shard. Will not create account.");
-                }
-                else {
-                    if (!shardToObjects.containsKey(shardID)) {
-                        shardToObjects.put(shardID, new ArrayList<AccountObject>());
-                    }
-                    shardToObjects.get(shardID).add(accObj);
-                }
-            }
-            */
-
             // Update the shardManager field in all AccountObjects
             for(AccountObject accObj: accounts) {
 
@@ -424,18 +399,18 @@ public class MapClient implements Map<String, String> {
                 oos.close();
 
 
-                logMsg(strLabel,strModule,"Sending CREATE_ACCOUNT to shard "+shardID);
+                //logMsg(strLabel,strModule,"Sending CREATE_ACCOUNT to shard "+shardID);
 
                 int req = clientProxyAsynch.get(shardID).invokeAsynchRequest(bs.toByteArray(), new ReplyListener() {
                     @Override
                     public void replyReceived(RequestContext context, TOMMessage reply) { }
                 }, reqType);
 
-                logMsg(strLabel,strModule,"Sent a request to shard ID " + shardID);
+                //logMsg(strLabel,strModule,"Sent a request to shard ID " + shardID);
             }
         }
         catch(Exception e){
-            logMsg(strLabel,strModule,"Experienced Exception " + e.getMessage());
+            logMsg(strLabel,strModule,"Exception " + e.getMessage());
         }
     }
 
@@ -781,23 +756,24 @@ public class MapClient implements Map<String, String> {
                             // REPLAY ATTACK ON PHASE 1
                             // ====================
                             //
-                            // Receiving pre_prepare or pre_abort (per byzcuit lingo) from other shards here
+                            // Receiving pre_prepare or pre_abort (per Byzcuit terminology) from other shards here.
                             // Replacing shard 1's ACCEPTED_T_COMMIT with ACCEPTED_T_ABORT to simulate
                             // an adversary that injected the ACCEPTED_T_ABORT msg. As a result, assuming
                             // shard 0 also sent ACCEPT_T_COMMIT, shards end up with the following conflicting
-                            // commits:
+                            // decisions:
                             //
-                            // shard 0: Sends ACCEPT_T_COMMIT but receives the injected ACCEPTED_T_ABORT from
-                            //          shard 1, so it's final decision is to ABORT.
+                            // shard 0: Locally decides ACCEPT_T_COMMIT but receives the injected ACCEPTED_T_ABORT
+                            //          from shard 1, so it's final decision is to ABORT.
                             //
-                            // shard 1: Sends ACCEPT_T_COMMIT and receives ACCEPTED_T_COMMIT from
+                            // shard 1: Locally decides ACCEPT_T_COMMIT and receives ACCEPTED_T_COMMIT from
                             //          shard 0, so it's final decision is to COMMIT.
                             //
                             // Implementing this attack for demo purposes for transaction id 22
+                            //
                             if(t.id.equals("22") && strReply.equals(ResponseType.ACCEPTED_T_COMMIT) && shard == 1 && thisShard == 0) {
                                 strReply = ResponseType.ACCEPTED_T_ABORT;
                                 System.out.println(">>>>>>>>> REPLAY ATTACK <<<<<<<<<<<<");
-                                logMsg(strLabel, strModule, "Injecting ACCEPTED_T_ABORT from shard " + shard + "to shard " + thisShard + "which will replace its original reply ACCEPTED_T_COMMIT");
+                                logMsg(strLabel, strModule, "Injecting ACCEPTED_T_ABORT from shard " + shard + " to shard " + thisShard + " which will replace its original reply ACCEPTED_T_COMMIT");
                             }
 
                             logMsg(strLabel, strModule, "Shard ID " + shard + " replied: " + strReply);
