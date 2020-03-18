@@ -27,6 +27,7 @@ public class TreeMapServer extends DefaultRecoverable {
 
     SimpleLogger slogger;
     Map<String, String> table;
+    AccountTable accounts; // Contains account objects indexed by their IDs
     HashMap<String, TransactionSequence> sequences; // Indexed by Transaction ID
     int thisShard; // the shard this replica is part of
     int thisReplica; // ID of this replica within thisShard
@@ -55,6 +56,7 @@ public class TreeMapServer extends DefaultRecoverable {
         }
 
         table = new TreeMap<>(); // contains objects and their state
+        accounts = new AccountTable();
         sequences = new  HashMap<>(); // contains operation sequences for transactions
         strLabel = "[s"+thisShard+"n"+ thisReplica+"] "; // This string is used in debug messages
 
@@ -195,6 +197,7 @@ public class TreeMapServer extends DefaultRecoverable {
                 try {
                     Transaction t = (Transaction) ois.readObject();
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
+                    t.print();
 
                     String reply = "";
                     /*
@@ -229,6 +232,7 @@ public class TreeMapServer extends DefaultRecoverable {
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
                     String reply = checkAcceptT(t);
+
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
                     return reply.getBytes("UTF-8");
@@ -247,6 +251,7 @@ public class TreeMapServer extends DefaultRecoverable {
                     logMsg(strLabel,strModule,"Received request for transaction "+t.id);
 
                     String reply = checkAcceptT(t);
+
                     logMsg(strLabel,strModule,"checkAcceptT responding with "+reply);
 
                     return reply.getBytes("UTF-8");
@@ -268,6 +273,23 @@ public class TreeMapServer extends DefaultRecoverable {
                         logMsg(strLabel,strModule,"Created object "+object);
 
                     }
+                }
+                catch(Exception e) {
+                    logMsg(strLabel,strModule,"Exception " + e.getMessage());
+                }
+                return null; // No reply expected by the caller
+            }
+
+            else if (reqType == RequestType.CREATE_ACCOUNT) {
+                strModule = "CREATE_ACCOUNT (MAIN): ";
+                try {
+                    ArrayList<AccountObject> accountObjs = (ArrayList<AccountObject>) ois.readObject();
+                    for(AccountObject acc: accountObjs) {
+                        accounts.add(acc);
+
+                        logMsg(strLabel,strModule,"Created account "+acc.id);
+                    }
+                    accounts.print(thisShard);
                 }
                 catch(Exception e) {
                     logMsg(strLabel,strModule,"Exception " + e.getMessage());
@@ -333,9 +355,11 @@ public class TreeMapServer extends DefaultRecoverable {
                             break;
                         case RequestType.ACCEPTED_T_COMMIT:
                             executeAcceptedTCommit(t);
+                            accounts.print(thisShard);
                             break;
                         case RequestType.ACCEPTED_T_ABORT:
                             executeAcceptedTAbort(t);
+                            accounts.print(thisShard);
                             break;
                     }
                 }
@@ -347,11 +371,12 @@ public class TreeMapServer extends DefaultRecoverable {
                     return null;  // No reply expected by the caller
                 }
             }
-            else if (reqType == RequestType.TRANSACTION_SUBMIT) {
+            else if (reqType == RequestType.TRANSACTION_SUBMIT || reqType == RequestType.TRANSACTION_PAYMENT) {
                 strModule = "SUBMIT_T (MAIN): ";
                 try {
-                    logMsg(strLabel,strModule,"Received request");
+                    logMsg(strLabel,strModule,"Received request of type "+RequestType.getReqName(reqType));
                     Transaction t = (Transaction) ois.readObject();
+                    System.out.println("Transaction received is:");
                     t.print();
 
                     // Early Reject: A transaction will only be processed again if the system
@@ -476,8 +501,18 @@ public class TreeMapServer extends DefaultRecoverable {
         // TODO: Things to do when transaction is PREPARED_T_COMMIT
 
         // Lock transaction input objects that were previously active
-        setTransactionInputStatus(t, ObjectStatus.LOCKED, ObjectStatus.ACTIVE);
-
+        if(t.operation.equals("pay")) {
+            for(String each: t.inputs) {
+                AccountObject accObj = accounts.get(each);
+                if(accObj.isManaged(thisShard) && accObj.status == ObjectStatus.ACTIVE) {
+                    accObj.status = ObjectStatus.LOCKED;
+                    accounts.replace(each, accObj);
+                }
+            }
+        }
+        else {
+            setTransactionInputStatus(t, ObjectStatus.LOCKED, ObjectStatus.ACTIVE);
+        }
         sequences.get(t.id).PREPARED_T_COMMIT = true;
     }
 
@@ -485,26 +520,92 @@ public class TreeMapServer extends DefaultRecoverable {
         // TODO: Things to do when transaction is ACCEPTED_T_ABORT
         // Unlock transaction input objects that were previously locked
 
-        setTransactionInputStatus(t, ObjectStatus.ACTIVE, ObjectStatus.LOCKED);
+        if(t.operation.equals("pay")) {
+            String[] arrCommand = t.command.split(";");
+            String payerID = arrCommand[0];
+            String payeeID = arrCommand[1];
+
+            AccountObject payer = accounts.get(payerID);
+            if(payer.isManaged(thisShard)) {
+                payer.status = ObjectStatus.ACTIVE;
+                accounts.replace(payerID, payer);
+            }
+
+            AccountObject payee = accounts.get(payeeID);
+            if(payee.isManaged(thisShard)) {
+                payee.status = ObjectStatus.ACTIVE;
+                accounts.replace(payeeID, payee);
+            }
+
+        }
+        else {
+            setTransactionInputStatus(t, ObjectStatus.ACTIVE, ObjectStatus.LOCKED);
+        }
 
         sequences.get(t.id).ACCEPTED_T_ABORT = true;
     }
 
     private void executeAcceptedTCommit(Transaction t){
         // TODO: Things to do when transaction is ACCEPTED_T_COMMIT
-        // Inactivate transaction input objects
-        setTransactionInputStatus(t, ObjectStatus.INACTIVE);
+
         String strModule = "executeAcceptedTCommit";
 
-        if(isBFTInitiator()) {
-            // Create output objects (local as well as those on other shards)
-            int timeout = 0; // How long to wait for replies to be accumulated in replies.
-            // Default is no wait; just let object creation happen asynchronously.
-            logMsg(strLabel,strModule,"Creating outputs for the following transaction:");
-            t.print();
+        if(t.operation.equals("pay")) {
+
+            String[] arrCommand = t.command.split(";");
+            String payerID = arrCommand[0];
+            String payeeID = arrCommand[1];
+            int amount = Integer.parseInt(arrCommand[2]);
+
+            // Make payer 'inactive', create a new 'active' account for payer
+            // with the updated balance. Same for payee
+
+            // Payer
+            AccountObject payer = accounts.get(payerID);
+
+            String payerNew_id = payer.id+"_NEW";
+            int payerNew_balance = payer.balance - amount;
+            String payerNew_status = ObjectStatus.ACTIVE;
+            int payerNew_shardManager = payer.shardManager;
+            AccountObject payerNew = new AccountObject(payerNew_id, payerNew_balance, payerNew_status, payerNew_shardManager);
+            accounts.put(payerNew.id, payerNew);
+
+            //AccountObject payerExpired = new AccountObject(payer.id, payer.balance, ObjectStatus.INACTIVE, payer.shardManager);
+            //accounts.replace(payer.id, payerExpired);
+            // Remove inactive account
+            accounts.remove(payer.id);
+
+            // Payee
+            AccountObject payee = accounts.get(payeeID);
+
+            String payeeNew_id = payee.id+"_NEW";
+            int payeeNew_balance = payee.balance + amount;
+            String payeeNew_status = ObjectStatus.ACTIVE;
+            int payeeNew_shardManager = payee.shardManager;
+            AccountObject payeeNew = new AccountObject(payeeNew_id, payeeNew_balance, payeeNew_status, payeeNew_shardManager);
+            accounts.put(payeeNew.id, payeeNew);
+
+            //AccountObject payeeExpired = new AccountObject(payee.id, payee.balance, ObjectStatus.INACTIVE, payee.shardManager);
+            //accounts.replace(payee.id, payeeExpired);
+            // Remove inactive account
+            accounts.remove(payee.id);
+
+        }
+        else {
+            // Inactivate transaction input objects
+            setTransactionInputStatus(t, ObjectStatus.INACTIVE);
 
 
-            client.createObjects(t.outputs);
+            if (isBFTInitiator()) {
+                // Create output objects (local as well as those on other shards)
+                int timeout = 0; // How long to wait for replies to be accumulated in replies.
+                // Default is no wait; just let object creation happen asynchronously.
+                logMsg(strLabel, strModule, "Creating outputs for the following transaction:");
+                t.print();
+
+
+                client.createObjects(t.outputs);
+            }
         }
 
         sequences.get(t.id).ACCEPTED_T_COMMIT = true;
@@ -518,36 +619,96 @@ public class TreeMapServer extends DefaultRecoverable {
         if (t.getCsTransaction() != null) {
             System.out.println(t.getCsTransaction().getContractID());
         }
+
         // Check if all input objects are active
         // and at least one of the input objects is managed by this shard
         int nManagedObj = 0;
         String reply = ResponseType.PREPARED_T_COMMIT;
         String strErr = "Unknown";
 
-        for(String key: t.inputs) {
-            String readValue = table.get(key);
-            boolean managedObj = (client.mapObjectToShard(key)==thisShard);
-            if(managedObj)
-                nManagedObj++;
-            if(managedObj && readValue == null) {
+
+        if(t.operation.equals("pay")) {
+
+            System.out.println("PREPARE_T (checkPrepareT): Processing TRANSACTION_PAYMENT");
+
+            List<String> inputs = new ArrayList<>();
+            String[] arrCommand = t.command.split(";");
+            String payerID = arrCommand[0];
+            String payeeID = arrCommand[1];
+            int amount = Integer.parseInt(arrCommand[2]);
+
+            AccountObject payer = accounts.get(payerID);
+            AccountObject payee = accounts.get(payeeID);
+
+            // Either payer or payee is null
+            if (payer == null || payee == null) {
                 strErr = Transaction.INVALID_NOOBJECT;
                 reply = ResponseType.PREPARED_T_ABORT;
             }
-            else if(managedObj && readValue != null) {
-                if (readValue.equals(ObjectStatus.LOCKED)) {
-                    strErr = Transaction.REJECTED_LOCKEDOBJECT;
+            // This shard doesn't manage the payer or payee
+            else if(!payer.isManaged(thisShard) && !payee.isManaged(thisShard)) {
+                    strErr = Transaction.INVALID_NOMANAGEDOBJECT;
                     reply = ResponseType.PREPARED_T_ABORT;
-                }
-                else if (managedObj && readValue.equals(ObjectStatus.INACTIVE)) {
-                    strErr = Transaction.INVALID_INACTIVEOBJECT;
-                    reply = ResponseType.PREPARED_T_ABORT;
-                }
             }
+            // Any of the accounts managed by this shard is locked
+            else if ( ( payer.isManaged(thisShard) && payer.status.equals(ObjectStatus.LOCKED) ) ||
+                    ( payee.isManaged(thisShard) && payee.status.equals(ObjectStatus.LOCKED) ) ) {
+
+                strErr = Transaction.REJECTED_LOCKEDOBJECT;
+                reply = ResponseType.PREPARED_T_ABORT;
+            }
+            // Payer doesn't have enough balance for the payment transfer
+            else if(payer.balance - amount < 0) {
+                strErr = Transaction.ILLEGAL_OPERATION;
+                reply = ResponseType.PREPARED_T_ABORT;
+            }
+            // Assuming only UTXO stored, Inactive objects are pruned
+            //
+            //else if (managedObj && acc.status.equals(ObjectStatus.INACTIVE)) {
+            //    strErr = Transaction.INVALID_INACTIVEOBJECT;
+            //    reply = ResponseType.PREPARED_T_ABORT;
+            //}
+            //
             // debug option -- should be removed
             else {
                 System.out.println("\n>> DEBUG MODE");
             }
 
+        }
+
+        else {
+
+            System.out.println("PREPARE_T (checkPrepareT): Processing TRANSACTION_SUBMIT");
+
+            for (String key : t.inputs) {
+                String readValue = table.get(key);
+                boolean managedObj = (client.mapObjectToShard(key) == thisShard);
+                if (managedObj)
+                    nManagedObj++;
+                if (managedObj && readValue == null) {
+                    strErr = Transaction.INVALID_NOOBJECT;
+                    reply = ResponseType.PREPARED_T_ABORT;
+                } else if (managedObj && readValue != null) {
+                    if (readValue.equals(ObjectStatus.LOCKED)) {
+                        strErr = Transaction.REJECTED_LOCKEDOBJECT;
+                        reply = ResponseType.PREPARED_T_ABORT;
+                    } else if (managedObj && readValue.equals(ObjectStatus.INACTIVE)) {
+                        strErr = Transaction.INVALID_INACTIVEOBJECT;
+                        reply = ResponseType.PREPARED_T_ABORT;
+                    }
+                }
+                // debug option -- should be removed
+                else {
+                    System.out.println("\n>> DEBUG MODE");
+                }
+
+            }
+            // The case when this shard doesn't manage any of the input objects
+            // AND the transaction isn't an init transaction
+            if(nManagedObj == 0 && t.inputs.size() != 0) {
+                strErr = Transaction.INVALID_NOMANAGEDOBJECT;
+                reply = ResponseType.PREPARED_T_ABORT;
+            }
         }
 
         if (t.getCsTransaction() != null) { // debug compatible
@@ -561,13 +722,6 @@ public class TreeMapServer extends DefaultRecoverable {
                 reply = ResponseType.PREPARED_T_ABORT;
                 e.printStackTrace();
             }
-        }
-
-        // The case when this shard doesn't manage any of the input objects
-        // AND the transaction isn't an init transaction
-        if(nManagedObj == 0 && t.inputs.size() != 0) {
-            strErr = Transaction.INVALID_NOMANAGEDOBJECT;
-            reply = ResponseType.PREPARED_T_ABORT;
         }
 
         if(reply.equals(ResponseType.PREPARED_T_ABORT))
@@ -652,7 +806,16 @@ public class TreeMapServer extends DefaultRecoverable {
         ArrayList<Integer> shardIDs = new ArrayList<Integer>();
         int unique = 0;
         for (String input : inputObjects) {
-            Integer shardID = new Integer(client.mapObjectToShard(input));
+
+            Integer shardID = new Integer(-1);
+
+            if(t.operation.equals("pay")) {
+                shardID = new Integer(client.mapAccountToShard(input));
+            }
+            else {
+                shardID = new Integer(client.mapObjectToShard(input));
+            }
+
             if (!shardIDs.contains(shardID)) {
                 shardIDs.add(shardID);
                 unique++;

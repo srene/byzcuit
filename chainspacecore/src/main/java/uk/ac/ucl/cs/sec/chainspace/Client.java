@@ -184,7 +184,7 @@ public class Client {
 
         System.out.println("\n>> SUBMITTING TRANSACTION...");
         Transaction transaction = new Transaction(request);
-        return client.submitTransaction(transaction);
+        return client.submitTransaction(transaction, RequestType.TRANSACTION_SUBMIT);
 
     }
 

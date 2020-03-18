@@ -10,17 +10,21 @@ public class RequestType {
     public static final int SIZE = 4;
     public static final int TRANSACTION_VALIDITY = 5;
     public static final int TRANSACTION_SUBMIT = 6;  // The ChainSpace client sends this request to shard(s)
+    public static final int TRANSACTION_PAYMENT = 19;
+    public static final int REPLAY_ATTACK_1 = 20;
+    public static final int REPLAY_ATTACK_2 = 21;
     // The requests below are sent by a BFT leader
     public static final int PREPARE_T = 7;
     public static final int ACCEPT_T_ABORT = 8;
     public static final int ACCEPT_T_COMMIT = 9;
+    public static final int CREATE_OBJECT = 10;
+    public static final int CREATE_ACCOUNT = 18; // User also sends this
     // The requests below are sent via broadcast, and are just meant to
     // inform replicas to update their state
-    public static final int CREATE_OBJECT = 10;
     public static final int PREPARED_T_COMMIT = 14;
     public static final int PREPARED_T_ABORT = 15;
     public static final int ACCEPTED_T_COMMIT = 16;
-    public static final int ACCEPTED_T_ABORT = 17;;
+    public static final int ACCEPTED_T_ABORT = 17;
 
     public static String getReqName(int n) {
         String name = "";
@@ -66,6 +70,12 @@ public class RequestType {
                 break;
             case 17:
                 name = "ACCEPTED_T_ABORT";
+                break;
+            case 18:
+                name = "CREATE_ACCOUNT";
+                break;
+            case 19:
+                name = "TRANSACTION_PAYMENT";
                 break;
             default:
                 name = "UNKNOWN";

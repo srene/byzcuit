@@ -21,6 +21,9 @@ public class Transaction implements Serializable {
     public String id;
     public List<String> inputs;
     public List<String> outputs;
+    public String operation; // Can be "none" (default) or "pay"
+    public String command; // Can be "none" (default) or a string of the form
+                           // "<payer_account_id>;<payee_account_id>;<amount>"
 
     // Transaction states
     public static final String VALID = "valid";
@@ -29,12 +32,13 @@ public class Transaction implements Serializable {
     public static final String REJECTED_LOCKEDOBJECT = "Rejected: Input object(s) is locked. ";
     public static final String INVALID_INACTIVEOBJECT = "Invalid: Input object(s) is inactive.";
     public static final String INVALID_BADTRANSACTION = "Invalid: Malformed transaction.";
+    public static final String ILLEGAL_OPERATION = "Invalid: Cannot perform the operation.";
 
     public Transaction() {
         inputs = new ArrayList<>();
         outputs = new ArrayList<>();
+        operation = "none";
     }
-
 
 
     public void addID(String id) {
@@ -50,14 +54,23 @@ public class Transaction implements Serializable {
     }
 
     public void print() {
+
+        System.out.println("==========================");
+
+        System.out.println("Operation: "+this.operation);
+        System.out.println("Command: "+this.command);
+
         System.out.println("Inputs:");
-        for (String s : inputs) {
+        for (String s : this.inputs) {
             System.out.println(s);
         }
+
         System.out.println("Outputs:");
         for (String s : outputs) {
             System.out.println(s);
         }
+
+        System.out.println("==========================");
     }
 
     public static byte[] toByteArray(Transaction t) {

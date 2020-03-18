@@ -12,6 +12,8 @@ import uk.ac.ucl.cs.sec.chainspace.Store;
 
 import java.util.Scanner;
 import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConsoleClient {
 
@@ -91,301 +93,229 @@ public class ConsoleClient {
 
         while (true) {
 
-            System.out.println("Select a shard (type 0 or 1):");
-            int cmd = sc.nextInt();
-            client.defaultShardID = cmd;
+            client.defaultShardID = 0;
 
             System.out.println("Select an option:");
-            System.out.println("1. ADD A KEY AND VALUE TO THE MAP");
-            System.out.println("2. READ A VALUE FROM THE MAP");
-            System.out.println("3. REMOVE AND ENTRY FROM THE MAP");
-            System.out.println("4. GET THE SIZE OF THE MAP");
-            System.out.println("5. VALIDATE A TRANSACTION");
-            System.out.println("6. SUBMIT A TRANSACTION");
-            System.out.println("7. PREPARE_T");
-            System.out.println("8. ACCEPT_T_ABORT");
-            System.out.println("9. ACCEPT_T_COMMIT");
-            System.out.println("10. CREATE_OBJECT");
-            System.out.println("11. TEST_CORE_1");
-            System.out.println("12. TEST_CORE_2");
-            System.out.println("13. TEST_CORE_3");
+
+            //System.out.println("18. CREATE ACCOUNT");
+            //System.out.println("19. TRANSACTION PAYMENT");
+
+            System.out.println("1. REPLAY ATTACK ON PHASE 1");
+            System.out.println("2. REPLAY ATTACK ON PHASE 2");
 
 
-            cmd = sc.nextInt();
-            String key, input;
+            int cmd = sc.nextInt();
+            if(cmd == 1)
+                cmd = RequestType.REPLAY_ATTACK_1;
+            else if(cmd == 2)
+                cmd = RequestType.REPLAY_ATTACK_2;
+
+            List<AccountObject> accounts;
+            Transaction t;
+            AccountObject accObj;
+            String result, key, input, payer, payee, strPayment, amount, accId, accId_bob, accId_alice;
+            int balance;
+
 
             switch (cmd) {
-                // All the tests below operate on client.testShardID which is user specified at the console
-                case RequestType.PUT:
-                    System.out.println("Putting value in the map");
-                    System.out.println("Enter the key:");
-                    key = console.nextLine();
-                    System.out.println("Enter the value:");
-                    String value = console.nextLine();
-                    String result = client.put(key, value);
-                    System.out.println("Previous value: " + result);
-                    break;
-                case RequestType.GET:
-                    System.out.println("Reading value from the map");
-                    System.out.println("Enter the key:");
-                    key = console.nextLine();
-                    result = client.get(key);
-                    System.out.println("Value read: " + result);
-                    break;
-                case RequestType.REMOVE:
-                    System.out.println("Removing value in the map");
-                    System.out.println("Enter the key:");
-                    key = console.nextLine();
-                    result = client.remove(key);
-                    System.out.println("Value removed: " + result);
-                    break;
-                case RequestType.SIZE:
-                    System.out.println("Getting the map size");
-                    int size = client.size();
-                    System.out.println("Map size: " + size);
-                    break;
 
-                // All the tests below operate on whichever shards are relevant to the transaction
-                // The shard ID provided by user at the console is ignored
-                case RequestType.TRANSACTION_SUBMIT:
+                case RequestType.CREATE_ACCOUNT:
+                    System.out.println("Doing CREATE_ACCOUNT");
 
-                    System.out.println("Transaction will be submitted to all relevant shards (not just the one provided at input!)");
+                    accounts = new ArrayList<>();
 
-                    Transaction t2 = new Transaction();
+                    System.out.println("Enter (unique) Account ID:");
+                    accId = console.nextLine();
+
+                    System.out.println("Enter account balance:");
+                    input = console.nextLine();
+                    balance = Integer.parseInt(input);
+
+                    accObj = new AccountObject(accId, balance);
+                    accounts.add(accObj);
+
+                    System.out.println("Type 'q' to stop, or anything else to continue:");
+                    input = console.nextLine();
+
+                    while (!(input.equalsIgnoreCase("q"))) {
+
+                        System.out.println("Enter (unique) Account ID:");
+                        accId = console.nextLine();
+
+                        System.out.println("Enter account balance:");
+                        input = console.nextLine();
+                        balance = Integer.parseInt(input);
+
+                        accObj = new AccountObject(accId, balance);
+                        accounts.add(accObj);
+
+                        System.out.println("Type 'q' to stop, or anything else to continue:");
+                        input = console.nextLine();
+                    }
+
+                    client.createAccounts(accounts);
+
+                    break;
+                case RequestType.TRANSACTION_PAYMENT:
+
+                    t = new Transaction();
+                    t.operation = "pay";
+
                     System.out.println("Enter transaction ID:");
                     input = console.nextLine();
-                    t2.addID(input);
+                    t.addID(input);
 
-                    System.out.println("Enter inputs, one per line (type 'q' to stop):");
-                    input = console.nextLine();
+                    System.out.println("Enter payer's account ID:");
+                    payer = console.nextLine();
 
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t2.addInput(input);
-                        input=console.nextLine();
-                    }
+                    System.out.println("Enter payee's account ID:");
+                    payee = console.nextLine();
 
-                    System.out.println("Enter outputs, one per line (type 'q' to stop):");
-                    input=console.nextLine();
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t2.addOutput(input);
-                        input=console.nextLine();
-                    }
+                    System.out.println("Enter the amount to transfer:");
+                    amount = console.nextLine();
 
+                    strPayment = payer + ";" + payee + ";" + amount;
 
-                    System.out.println("Transaction to be added is:");
-                    t2.print();
-                    result = client.submitTransaction(t2);
+                    System.out.println("Transaction to be submitted is: ");
+                    t.print();
+
+                    result = client.submitTransaction(t, RequestType.TRANSACTION_PAYMENT);
                     System.out.println("Transaction status: " + result);
                     break;
 
-                case RequestType.PREPARE_T:
-                    System.out.println("Doing PREPARE_T");
-                    Transaction t3 = new Transaction();
+                case RequestType.REPLAY_ATTACK_1:
+                    // ========= Creating accounts =========
 
-                    System.out.println("Enter transaction ID:");
-                    input = console.nextLine();
-                    t3.addID(input);
+                    accounts = new ArrayList<>();
 
-                    System.out.println("Enter inputs, one per line (type 'q' to stop):");
-                    input = console.nextLine();
+                    System.out.println("Creating accounts for 'alice' and 'bob'.");
 
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t3.addInput(input);
-                        input=console.nextLine();
+                    accId_alice = "alice";
+                    balance = 10;
+                    accObj = new AccountObject(accId_alice, balance);
+                    accounts.add(accObj);
+
+                    accId_bob = "bob";
+                    balance = 30;
+                    accObj = new AccountObject(accId_bob, balance);
+                    accounts.add(accObj);
+
+                    client.createAccounts(accounts);
+
+                    // Give some time for the accounts to be created
+                    try {
+                        Thread.sleep(5000);
+                    }
+                    catch(Exception e) {
+                        System.out.println("Could not sleep!"+e.getMessage());
                     }
 
-                    System.out.println("Enter outputs, one per line (type 'q' to stop):");
-                    input=console.nextLine();
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t3.addOutput(input);
-                        input=console.nextLine();
-                    }
+                    System.out.println("Now submitting transaction...");
 
-                    System.out.println("Transaction to be added is:");
-                    t3.print();
+                    // ========= Payment =========
 
-                    byte[] reply = client.prepare_t(t3, 0);
-                    if(reply != null) {
-                        try {
-                            System.out.println("Transaction status: " + new String(reply, "UTF-8"));
-                        }
-                        catch(Exception e) {
-                            System.out.println("Transaction status: Exception "+ e.toString());
-                        }
-                    }
-                    else
-                        System.out.println("Transaction status: null");
+                    t = new Transaction();
+                    t.operation = "pay";
+                    t.inputs.add(accId_alice);
+                    t.inputs.add(accId_bob);
+
+                    t.addID("22");
+                    payer = "bob";
+                    payee = "alice";
+                    amount = "5";
+
+                    strPayment = payer + ";" + payee + ";" + amount;
+                    t.command = strPayment;
+                    t.operation = "pay";
+
+                    System.out.println("Transaction to be submitted is:");
+                    t.print();
+
+                    result = client.submitTransaction(t, RequestType.TRANSACTION_PAYMENT);
+                    //System.out.println("Transaction status: " + result);
                     break;
 
-                case RequestType.ACCEPT_T_COMMIT:
-                    System.out.println("Doing ACCEPT_T_COMMIT");
-                    Transaction t4 = new Transaction();
+                case RequestType.REPLAY_ATTACK_2:
+                    // ========= Creating accounts =========
 
-                    System.out.println("Enter transaction ID:");
-                    input = console.nextLine();
-                    t4.addID(input);
+                    accounts = new ArrayList<>();
 
-                    System.out.println("Enter inputs, one per line (type 'q' to stop):");
-                    input = console.nextLine();
+                    System.out.println("Creating account for 'alice' and 'bob'.");
 
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t4.addInput(input);
-                        input=console.nextLine();
+                    String accId_charlie = "charlie";
+                    balance = 10;
+                    accObj = new AccountObject(accId_charlie, balance);
+                    accounts.add(accObj);
+
+                    String accId_dave = "dave";
+                    balance = 30;
+                    accObj = new AccountObject(accId_dave, balance);
+                    accounts.add(accObj);
+
+                    client.createAccounts(accounts);
+
+                    // Give some time for the accounts to be created
+                    try {
+                        Thread.sleep(5000);
+                    }
+                    catch(Exception e) {
+                        System.out.println("Could not sleep!"+e.getMessage());
                     }
 
-                    System.out.println("Enter outputs, one per line (type 'q' to stop):");
-                    input=console.nextLine();
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t4.addOutput(input);
-                        input=console.nextLine();
-                    }
+                    System.out.println("Now submitting transaction: Transfer 1 coin from 'charlie' to 'dave'");
 
-                    System.out.println("Transaction to be added is:");
-                    t4.print();
+                    // ========= Payment =========
 
-                    String strReply = client.accept_t_commit(t4);
-                    /*
-                    if(strReply != null)
-                            System.out.println("Transaction status: " + strReply);
-                    else
-                        System.out.println("Transaction status: null");
-                        */
-                    break;
-                case RequestType.CREATE_OBJECT:
-                    System.out.println("Doing CREATE_OBJECT");
-                    Transaction t5 = new Transaction();
+                    t = new Transaction();
+                    t.operation = "pay";
+                    t.inputs.add(accId_charlie);
+                    t.inputs.add(accId_dave);
+
+                    t.addID("23");
+                    payer = "charlie";
+                    payee = "dave";
+                    amount = "5";
+
+                    strPayment = payer + ";" + payee + ";" + amount;
+                    t.command = strPayment;
+                    t.operation = "pay";
 
                     /*
-                    System.out.println("Enter transaction ID:");
-                    input = console.nextLine();
-                    t5.addID(input);
+                    System.out.println("Transaction to be submitted is:");
+                    t.print();
                      */
 
-                    t5.addID("Dummy");
+                    result = client.submitTransaction(t, RequestType.TRANSACTION_PAYMENT);
 
-                    /*
-                    System.out.println("Enter inputs, one per line (type 'q' to stop):");
-                    input = console.nextLine();
+                    //System.out.println("Transaction status: " + result);
 
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t5.addInput(input);
-                        input=console.nextLine();
+                    // ========= Creating account for Charlie again =========
+
+                    if(result.equals(ResponseType.ACCEPTED_T_COMMIT)) {
+                        System.out.println("\nTransferred 5 coins from 'charlie' to 'dave'.");
+                        System.out.println("The account 'charlie' with balance 10 has been deactivated, and a new account 'charlie_NEW' with balance 5 has been created on shard 0.");
+                        System.out.println("The account 'dave' with balance 30 has been deactivated, and a new account 'dave_NEW' with balance 35 has been created on shard 1.");
+
+                        accounts = new ArrayList<>();
+
+                        System.out.println("Creating account for 'charlie' again. This transaction " +
+                                "should be aborted because an account object with same ID has been spent. " +
+                                "However, as the spent 'charlie' account has been pruned, this transaction " +
+                                "will go through, creating fresh 10 coins for 'charlie' out of thin air.\n");
+
+                        balance = 10;
+                        accObj = new AccountObject(accId_charlie, balance);
+                        accounts.add(accObj);
+
+                        client.createAccounts(accounts);
                     }
-                     */
-
-                    t5.addInput("Dummy");
-
-                    System.out.println("Enter objects, one per line (type 'q' to stop):");
-                    input=console.nextLine();
-                    while (!(input.equalsIgnoreCase("q"))) {
-                        t5.addOutput(input);
-                        input=console.nextLine();
-                    }
-
-                    /*
-                    System.out.println("Transaction whose outputs are to be created is:");
-                    t5.print();
-                    */
-
-                    client.createObjects(t5.outputs);
                     break;
 
-                case 11:
-                    System.out.println("\n>> PREPARING TO SEND TRANSACTION...\n");
-
-                    CSTransaction csTransaction11 = new CSTransaction(
-                            "addition",
-                            new String[]{"hash_input_0"},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{"1"},
-                            new CSTransaction[]{},
-                            "increment"
-                    );
-                    Store store11 = new Store();
-                    store11.put("hash_input_0", "0");
-
-
-                    Transaction t11 = null;
-                    try {
-                        t11 = new Transaction(csTransaction11, store11);
-                    } catch (NoSuchAlgorithmException e) {
-                        System.err.print("\n>> [ERROR] "); e.printStackTrace();
-                        System.exit(-1);
-                    }
-
-                    System.out.println("Transaction to be added is:");
-                    t11.print();
-                    result = client.submitTransaction(t11);
-                    System.out.println("Transaction status: " + result);
-                    break;
-/*
-
-                case 12:
-                    System.out.println("\n>> PREPARING TO SEND TRANSACTION...\n");
-
-                    CSTransaction csTransaction12 = new CSTransaction(
-                            "addition",
-                            new String[]{"hash_input_1"},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{"2"},
-                            new CSTransaction[]{},
-                            "increment"
-                    );
-                    Store store12 = new Store();
-                    store12.put("hash_input_1", "1");
-
-
-                    Transaction t12 = null;
-                    try {
-                        t12 = new Transaction(csTransaction12, store12);
-                    } catch (NoSuchAlgorithmException e) {
-                        System.err.print("\n>> [ERROR] "); e.printStackTrace();
-                        System.exit(-1);
-                    }
-
-                    System.out.println("Transaction to be added is:");
-                    t12.print();
-                    result = client.submitTransaction(t12);
-                    System.out.println("Transaction status: " + result);
-                    break;
-
-                case 13:
-                    System.out.println("\n>> PREPARING TO SEND TRANSACTION...\n");
-
-                    CSTransaction csTransaction13 = new CSTransaction(
-                            "addition",
-                            new String[]{"hash_input_2"},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{},
-                            new String[]{"3"},
-                            new CSTransaction[]{},
-                            "increment"
-                    );
-                    Store store13 = new Store();
-                    store13.put("hash_input_1", "2");
-
-
-                    Transaction t13 = null;
-                    try {
-                        t13 = new Transaction(csTransaction13, store13);
-                    } catch (NoSuchAlgorithmException e) {
-                        System.err.print("\n>> [ERROR] "); e.printStackTrace();
-                        System.exit(-1);
-                    }
-
-                    System.out.println("Transaction to be added is:");
-                    t13.print();
-                    result = client.submitTransaction(t13);
-                    System.out.println("Transaction status: " + result);
-                    break;
-                    */
+                default:
+                    System.out.println("Not a valid option.");
 
             }
+
         }
     }
 
