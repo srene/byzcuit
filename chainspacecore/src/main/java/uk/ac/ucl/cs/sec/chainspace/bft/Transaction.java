@@ -104,8 +104,12 @@ public class Transaction implements Serializable {
         JSONObject requestJson = new JSONObject(request);
 
         // extract transaction
-        try { this.csTransaction = CSTransaction.fromJson(requestJson.getJSONObject("transaction")); }
-        catch (Exception e) { throw new AbortTransactionException("Malformed transaction."); }
+        try { 
+        	this.csTransaction = CSTransaction.fromJson(requestJson.getJSONObject("transaction")); 
+        }
+        catch (Exception e) { 
+        	throw new AbortTransactionException("Malformed transaction.");
+        }
 
         // extract id-value store
         try { this.store = Store.fromJson(requestJson.getJSONObject("store")); }

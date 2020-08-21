@@ -21,12 +21,12 @@ def parse_client_simplelog(filename):
 
 
 class Tester(object):
-    def __init__(self, network, core_directory='/home/admin/chainspace/chainspacecore', outfile='out'):
+    def __init__(self, network, core_directory='/Users/srene/workspace/byzcuit/chainspacecore', outfile='out'):
         self.outfh = open(outfile, 'a')
         self.core_directory = core_directory
         self.network = network
 
-        network.logging = False
+        network.logging = True
 
         network.ssh_connect(0)
         network.ssh_connect(1)
@@ -253,15 +253,22 @@ class Tester(object):
             for i in range(runs):
                 try:
                     print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
+                    print "config core"
                     self.network.config_core(num_shards, 4)
+                    print "config me"
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                    print "start core"
                     self.network.start_core()
 
                     time.sleep(10)
+                    print "start clients"
                     self.start_clients()
                     time.sleep(10)
+                    print "start simulation"
                     dumper.simulation_batched(self.network, 1, 1, create_dummy_objects=1, num_dummy_objects=num_dummies, output_object_mode=-1)
+                    print "simulation done"
                     time.sleep(20)
+                    print "stop clients"
                     self.stop_clients()
 
                     tps_set = self.network.get_tpsm_set()
@@ -292,6 +299,61 @@ class Tester(object):
         self.outfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
+    def measure_sergi(self, num_shards, runs, mode):
+        tps_sets_sets = []
+        for num_dummies in range(1, num_shards):
+            tps_sets = []
+
+            for i in range(runs):
+                try:
+                    print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
+                    print "config core"
+                    self.network.config_core(num_shards, 4)
+                    print "config me"
+                    self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                    print "start core"
+                    self.network.start_core()
+
+                    time.sleep(10)
+                    print "start clients"
+                    self.start_clients()
+                    time.sleep(10)
+                    print "start simulation"
+                    #dumper.simulation_batched(network, inputs_per_tx, outputs_per_tx, num_transactions=None, batch_size=4000, batch_sleep=1, input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
+
+                    dumper.simulation_batched(self.network, 1, 1, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
+                    print "simulation done"
+                    time.sleep(20)
+                    print "stop clients"
+                    self.stop_clients()
+
+                    tps_set = self.network.get_tpsm_set()
+                    tps_sets.append(tps_set)
+                    print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
+                except Exception:
+                    traceback.print_exc()
+                finally:
+                    try:
+                        self.network.stop_core()
+                        time.sleep(2)
+                        self.network.clean_state_core(SHARD)
+                    except:
+                        # reset connection
+                        for i in range(5):
+                            try:
+                                self.network.ssh_close()
+                                self.network.ssh_connect()
+                                self.network.stop_core()
+                                time.sleep(2)
+                                self.network.clean_state_core(SHARD)
+                                break
+                            except:
+                                time.sleep(5)
+
+            tps_sets_sets.append(tps_sets)
+
+        self.outfh.write(json.dumps(tps_sets_sets))
+        return tps_sets_sets
 
 if __name__ == '__main__':
     if sys.argv[1] == 'shardscaling':
@@ -424,3 +486,15 @@ if __name__ == '__main__':
         t = Tester(n, outfile=outfile)
 
         print t.measure_bano(num_shards, runs)
+
+
+    elif sys.argv[1] == 'sergi':
+        num_shards = int(sys.argv[2])
+        mode = int(sys.argv[3])
+        runs = int(sys.argv[4])
+        outfile = sys.argv[5]
+
+        n = ChainspaceNetwork(0)
+        t = Tester(n, outfile=outfile)
+
+        print t.measure_sergi(num_shards, runs, mode)

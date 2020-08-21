@@ -20,7 +20,7 @@ class ChainspaceNetwork(object):
     threads = 100
     aws_api_threads = 5
 
-    def __init__(self, network_id, aws_region='us-east-2'):
+    def __init__(self, network_id, aws_region='eu-west-2'):
         self.network_id = str(network_id)
 
         self.aws_region = aws_region
@@ -67,7 +67,7 @@ class ChainspaceNetwork(object):
         self._log_instance(instance, "Initiating SSH connection...")
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname=instance.public_ip_address, username='admin')
+        client.connect(hostname=instance.public_ip_address, username='admin',key_filename='./ec2-keypair.pem')
         self.ssh_connections[instance] = client
         self._log_instance(instance, "Initiated SSH connection.")
 
@@ -120,16 +120,17 @@ class ChainspaceNetwork(object):
             command += 'printf "system.initial.view = {1}\n" >> shards/s{0}/system.config.forscript;'.format(i, initial_view)
             command += 'cp shards/s{0}/system.config.forscript shards/s{0}/system.config;'.format(i)
 
+        #print command
         return command
 
-    def launch(self, count, key_name, type):
+    def launch(self, count, type):
         self._log("Launching {0} instances of type {1}...".format(count, type))
         self.ec2.create_instances(
-            ImageId=_jessie_mapping[self.aws_region], # Debian 8.7
+            ImageId='ami-e5a35782', # Debian 8.7
             InstanceType='t2.medium',
             MinCount=count,
             MaxCount=count,
-            KeyName=key_name,
+            KeyName='ec2-keypair',
             SecurityGroups=['chainspace'],
             TagSpecifications=[
                 {
@@ -149,9 +150,10 @@ class ChainspaceNetwork(object):
         self._log("Installing Chainspace dependencies on all nodes...")
         command = 'export DEBIAN_FRONTEND=noninteractive;'
         command += 'export DEBIAN_PRIORITY=critical;'
+        command += 'echo "deb http://ftp.debian.org/debian stretch-backports main" | sudo tee -a /etc/apt/sources.list;'
         command += 'until '
         command += 'sudo -E apt update'
-        command += '&& sudo -E apt --yes --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -t jessie-backports openjdk-8-jdk'
+        command += '&& sudo -E apt --yes --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -t stretch-backports openjdk-8-jdk'
         command += '&& sudo -E apt --yes --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install git python-pip maven screen psmisc'
         command += '; do :; done'
         self.ssh_exec(command, type)
@@ -247,7 +249,9 @@ class ChainspaceNetwork(object):
     def _start_shard(self, shard):
         command = 'rm screenlog.0;'
         command += 'rm simplelog;'
-        command += 'screen -dmSL chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
+        #command += 'java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt &> log;'
+        command = 'screen -dmS chainspacecore java -cp chainspace/chainspacecore/lib/BFT-SMaRt.jar:chainspace/chainspacecore/target/chainspace-1.0-SNAPSHOT-jar-with-dependencies.jar uk.ac.ucl.cs.sec.chainspace.bft.TreeMapServer chainspace/chainspacecore/ChainSpaceConfig/config.txt'
+
         for instance in shard:
                 self._single_ssh_exec(instance, command)
                 time.sleep(0.5)
@@ -319,7 +323,8 @@ class ChainspaceNetwork(object):
         command = 'cd ~/chainspace/chainspacecore;'
         command += 'rm screenlog.0;'
         command += 'rm latencylog;'
-        command += 'screen -dmSL clientservice ./runclientservice.sh;'
+        command += 'screen -dmS clientservice ./runclientservice.sh;'
+        #command += 'sh runclientservice.sh &> log;'
         command += 'cd;'
         self.ssh_exec_in_clients(command)
 
@@ -329,7 +334,7 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command, CLIENT)
         self._log("Stopping all Chainspace clients.")
 
-    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/home/admin/chainspace', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
+    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/Users/srene/workspace/byzcuit', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
@@ -346,7 +351,8 @@ class ChainspaceNetwork(object):
         for client in self.clients:
             data = '\\n'.join([transactions.pop() for i in range(transactions_per_client)])
 
-            command = 'printf \'' + data + '\' > ' + directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
+            #command = 'printf \'' + data + '\' > ' + directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
+            command = 'printf \'' + data + '\' > ' + '/home/admin/chainspace/chainspacecore/ChainSpaceClientConfig/test_transactions.txt;'
             self._single_ssh_exec(client, command)
 
     def send_transactions(self, batch_size, batch_sleep):
@@ -375,7 +381,9 @@ class ChainspaceNetwork(object):
 
     def get_tpsm_set(self):
         tps_set = []
+        self._log("tps")
         for shard in self.shards.itervalues():
+            self._log("shard")
             instance = shard[0]
             tps = self._single_ssh_exec(instance, 'python chainspace/chainspacemeasurements/chainspacemeasurements/tpsm.py')[1]
             tps = float(tps.strip())

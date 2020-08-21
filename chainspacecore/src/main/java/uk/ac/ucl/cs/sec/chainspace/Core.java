@@ -72,7 +72,7 @@ public class Core {
 
             // save outputs
             //this.databaseConnector.saveObject(atransaction.getID(), atransactionForChecker.getOutputs());
-
+            System.out.println("Transaction "+atransaction.getID()+" "+transaction.toJson());
             // log transaction
             this.databaseConnector.logTransaction(atransaction.getID(), transaction.toJson());
 

@@ -11,19 +11,19 @@ import random
 import sys
 
 # FIXME: How many shards
-numShards=3
+numShards=2
 
 # FIXME: How many transactions
-numTransactions=100
+numTransactions=1000
 
 # FIXME: How many inputs per transaction
-numInputs=1
+numInputs=2
 
 # FIXME: How many outputs per transaction
 numOutputs=2
 
 # FIXME: Path where to write the output files
-path = "/Users/sheharbano/Projects/blockchain/byzcuit/chainspacecore/ChainSpaceClientConfig/"
+path = "/Users/srene/workspace/byzcuit/chainspacecore/ChainSpaceClientConfig/"
 
 # FIXME: Used to seed output object generator
 # Choose a large number, greater than the input objects generated
@@ -44,13 +44,17 @@ inputObjectCounter = []
 
 # Mode 0: means that input objects will be chosen from random shards
 # Mode 1: means that input objects will be sequentially chosen from shards in round robin
-inputObjectMode = 0
+# Mode 2: means that input objects will be sequentially chosen from the same shards
+# Mode 3: means that input objects will be sequentially chosen from different shards
+inputObjectMode = 2
 
 
 # Mode 0: means that output objects will be chosen from random shards
 # Mode 1: means that output objects will be sequentially chosen from shards in round robin
+# Mode 2: means that output objects will be sequentially chosen from the same shards
+# Mode 3: means that output objects will be sequentially chosen from different shards
 # Mode -1: means that numDummyObjects (= non-input shards) will be added to transaction; (assuming createDummyObjects = 1)
-outputObjectMode = 0
+outputObjectMode = 2
 
 # Used in getNextShard to get shards sequentially
 nextShardCounter = 1
@@ -60,7 +64,7 @@ allShards = set()
 
 # Dummy objects on (1) or off (0)
 # If this is on, will add to the transaction input/output object pair(s) from the non-input shards
-createDummyObjects = 1
+createDummyObjects = 0
 
 # How many dummy objects to add (assuming outputObjectMode has been set to -1)
 # a positive integer X means add 0 to X dummy objects, depending on the number of non-input shards
@@ -137,10 +141,19 @@ def mapObjectToShard(theObject):
 	# This is how Byzcuit maps objects to shards
 	return theObject % numShards
 
-
 def getRandomShard():
 	return random.randint(0,numShards-1)
 
+def getSameShard(shardID):
+	return shardID
+
+def getDifferentShard(shardID):
+
+	while True:
+		othershard = random.randint(0,numShards-1)
+		if(othershard != shardID):
+			break
+	return othershard
 
 def getNextShard():
 	global nextShardCounter
@@ -161,10 +174,24 @@ def genTransactionFile():
 	outputShards = set()
 
 	# Create / open file to write
-	fileName = path+"test_transactions.txt"
+	if outputObjectMode == 2:
+		fileName = path+"test_transactions_same.txt"
+	elif outputObjectMode == 3:
+		fileName = path+"test_transactions_different.txt"
+	else:
+		fileName = path+"test_transactions.txt"
+
+	#print fileName
+
 	outFile = open(fileName, "w")
 
 	# Write objects and their status to corresponding files
+
+	lastShard = 0
+	transactionxshardCounter = [None] * numShards
+	for i in range(numShards):
+		transactionxshardCounter[i] = 0
+
 	for i in range(numTransactions):
 
 		transactionID = getNextTransactionID()
@@ -179,15 +206,29 @@ def genTransactionFile():
 
 			if inputObjectMode == 0:
 				inputShard = getRandomShard()
+			elif inputObjectMode == 2:
+				if j != 0:
+					inputShard = getSameShard(lastShard)
+				else:
+					inputShard = getRandomShard()
+			elif inputObjectMode == 3:
+				if j != 0:
+					inputShard = getDifferentShard(lastShard)
+				else:
+					inputShard = getRandomShard()
 			else:
 				inputShard = getNextShard()
 
 			inputs = inputs + str(getNextInputObject(inputShard)) + delimiter
 			inputShards.add(inputShard)
+			#print str(i+1)+" "+str(inputShard)+" "+str(lastShard)
 
+			lastShard = inputShard
 
 		# generate output objects
         	outputs = ""
+
+		transactionxshardCounter[inputShard] = transactionxshardCounter[inputShard] +  1
 
 		if outputObjectMode != -1: # generate output objects randomly or sequentially
 			for j in range(numOutputs):
@@ -201,6 +242,12 @@ def genTransactionFile():
                 		# 0 for random output selection, and 1 for sequential
 				if outputObjectMode == 0:
 					outputShard = getRandomShard()
+					strOutput = str(getNextOutputObject(outputShard))
+				elif outputObjectMode == 2:
+					outputShard = getSameShard(inputShard)
+					strOutput = str(getNextOutputObject(outputShard))
+				elif outputObjectMode == 3:
+					outputShard = getDifferentShard(inputShard)
 					strOutput = str(getNextOutputObject(outputShard))
 				else:
 					theObject = getNextOutputObjectSequential()
@@ -273,6 +320,8 @@ def genTransactionFile():
 		inputShards.clear()
 		outputShards.clear()
 
+	for i in range(numShards):
+		print transactionxshardCounter[i]
 	# Close file
 	outFile.close()
 
