@@ -164,6 +164,7 @@ def getNextShard():
 
 def genTransactionFile():
 	# Initialise the set of all shard IDs
+	print path+" "+str(numTransactions)+" "+str(numInputs)+" "+str(numOutputs)
 	initAllShards()
 
 	# Initialise input and output object counters
@@ -174,12 +175,12 @@ def genTransactionFile():
 	outputShards = set()
 
 	# Create / open file to write
-	if outputObjectMode == 2:
-		fileName = path+"test_transactions_same.txt"
-	elif outputObjectMode == 3:
-		fileName = path+"test_transactions_different.txt"
-	else:
-		fileName = path+"test_transactions.txt"
+	#if outputObjectMode == 2:
+	#	fileName = path+"test_transactions_same.txt"
+	#elif outputObjectMode == 3:
+#		fileName = path+"test_transactions_different.txt"
+#	else:
+	fileName = path+"test_transactions.txt"
 
 	#print fileName
 

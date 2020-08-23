@@ -321,7 +321,7 @@ class Tester(object):
                     print "start simulation"
                     #dumper.simulation_batched(network, inputs_per_tx, outputs_per_tx, num_transactions=None, batch_size=4000, batch_sleep=1, input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
 
-                    dumper.simulation_batched(self.network, 1, 1, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
+                    dumper.simulation_batched(self.network, 2, 2, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
                     print "simulation done"
                     time.sleep(20)
                     print "stop clients"

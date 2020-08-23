@@ -335,6 +335,7 @@ class ChainspaceNetwork(object):
         self._log("Stopping all Chainspace clients.")
 
     def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/Users/srene/workspace/byzcuit', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
+        print str(num_transactions)+" "+str(num_inputs)+" "+str(num_outputs)+" "+directory+" "+str(input_object_mode)+" "+str(create_dummy_objects)+" "+str(num_dummy_objects)+" "+str(output_object_mode)
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
