@@ -308,7 +308,7 @@ class Tester(object):
                 try:
                     print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
                     print "config core"
-                    self.network.config_core(num_shards, 4)
+                    self.network.config_core(num_shards, 10)
                     print "config me"
                     self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
                     print "start core"
