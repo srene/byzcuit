@@ -334,8 +334,8 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command, CLIENT)
         self._log("Stopping all Chainspace clients.")
 
-    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, directory='/Users/srene/workspace/byzcuit', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
-        print str(num_transactions)+" "+str(num_inputs)+" "+str(num_outputs)+" "+directory+" "+str(input_object_mode)+" "+str(create_dummy_objects)+" "+str(num_dummy_objects)+" "+str(output_object_mode)
+    def prepare_transactions(self, num_transactions, num_inputs, num_outputs, shardListPath, directory='/Users/srene/workspace/byzcuit', input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
+        print "Prepare transactions "+str(num_transactions)+" "+str(num_inputs)+" "+str(num_outputs)+" "+directory+" "+str(input_object_mode)+" "+str(create_dummy_objects)+" "+str(num_dummy_objects)+" "+str(output_object_mode)
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
         num_inputs = str(int(num_inputs))
@@ -344,7 +344,7 @@ class ChainspaceNetwork(object):
         create_dummy_objects = str(int(create_dummy_objects))
         num_dummy_objects = str(int(num_dummy_objects))
         output_object_mode = str(int(output_object_mode))
-        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' + input_object_mode + ' ' + create_dummy_objects + ' ' + num_dummy_objects + ' ' + output_object_mode)
+        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' + input_object_mode + ' ' + create_dummy_objects + ' ' + num_dummy_objects + ' ' + output_object_mode+' '+shardListPath)
 
         transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
         transactions_per_client = len(transactions) / len(self.clients)
@@ -387,7 +387,9 @@ class ChainspaceNetwork(object):
             self._log("shard")
             instance = shard[0]
             tps = self._single_ssh_exec(instance, 'python chainspace/chainspacemeasurements/chainspacemeasurements/tpsm.py')[1]
+            #print "Get TPS "+tps
             tps = float(tps.strip())
+            #print "Get TPS "+str(tps)
             tps_set.append(tps)
 
         return tps_set

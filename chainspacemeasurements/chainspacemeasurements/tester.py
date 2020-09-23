@@ -21,8 +21,9 @@ def parse_client_simplelog(filename):
 
 
 class Tester(object):
-    def __init__(self, network, core_directory='/Users/srene/workspace/byzcuit/chainspacecore', outfile='out'):
-        self.outfh = open(outfile, 'a')
+    def __init__(self, network, core_directory='/Users/srene/workspace/byzcuit/chainspacecore', tpsfile='tps',latencyfile='lat'):
+        self.tpsfh = open(tpsfile, 'w')
+        self.latfh = open(latencyfile, 'w')
         self.core_directory = core_directory
         self.network = network
 
@@ -86,7 +87,7 @@ class Tester(object):
 
             latency_times_set_set.append(latency_times_set)
 
-        self.outfh.write(json.dumps(latency_times_set_set))
+        self.tpsfh.write(json.dumps(latency_times_set_set))
         return latency_times_set_set
 
     def measure_shard_scaling(self, min_shards, max_shards, runs, inputs_per_tx=1, outputs_per_tx=0, defences=False):
@@ -137,7 +138,7 @@ class Tester(object):
 
             tps_sets_sets.append(tps_sets)
 
-        self.outfh.write(json.dumps(tps_sets_sets))
+        self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
     def measure_node_scaling(self, num_shards, min_nodes, max_nodes, runs, step=1):
@@ -184,7 +185,7 @@ class Tester(object):
 
             tps_sets_sets.append(tps_sets)
 
-        self.outfh.write(json.dumps(tps_sets_sets))
+        self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
     def measure_input_scaling(self, num_shards, min_inputs, max_inputs, num_outputs, runs, case=None, defences=False):
@@ -242,7 +243,7 @@ class Tester(object):
 
             tps_sets_sets.append(tps_sets)
 
-        self.outfh.write(json.dumps(tps_sets_sets))
+        self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
     def measure_bano(self, num_shards, runs):
@@ -296,63 +297,84 @@ class Tester(object):
 
             tps_sets_sets.append(tps_sets)
 
-        self.outfh.write(json.dumps(tps_sets_sets))
+        self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_sergi(self, num_shards, runs, mode):
+    def measure_sergi(self, min_validators, max_validators,num_transactions, num_shards, runs, mode,shardListPath):
+
         tps_sets_sets = []
-        for num_dummies in range(1, num_shards):
-            tps_sets = []
+        latency_times_sets_sets = []
 
-            for i in range(runs):
-                try:
-                    print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
-                    print "config core"
-                    self.network.config_core(num_shards, 10)
-                    print "config me"
-                    self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
-                    print "start core"
-                    self.network.start_core()
-
-                    time.sleep(10)
-                    print "start clients"
-                    self.start_clients()
-                    time.sleep(10)
-                    print "start simulation"
-                    #dumper.simulation_batched(network, inputs_per_tx, outputs_per_tx, num_transactions=None, batch_size=4000, batch_sleep=1, input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
-
-                    dumper.simulation_batched(self.network, 2, 2, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
-                    print "simulation done"
-                    time.sleep(20)
-                    print "stop clients"
-                    self.stop_clients()
-
-                    tps_set = self.network.get_tpsm_set()
-                    tps_sets.append(tps_set)
-                    print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
-                except Exception:
-                    traceback.print_exc()
-                finally:
+        for validators in range(min_validators,max_validators+1):
+            print "Start test validators "+str(validators)
+            for num_dummies in range(1, num_shards):
+                tps_sets = []
+                latency_times_sets = []
+                for i in range(runs):
                     try:
-                        self.network.stop_core()
-                        time.sleep(2)
-                        self.network.clean_state_core(SHARD)
-                    except:
-                        # reset connection
-                        for i in range(5):
-                            try:
-                                self.network.ssh_close()
-                                self.network.ssh_connect()
-                                self.network.stop_core()
-                                time.sleep(2)
-                                self.network.clean_state_core(SHARD)
-                                break
-                            except:
-                                time.sleep(5)
+                        print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
+                        print "config core"
+                        self.network.config_core(num_shards, validators)
+                        print "config me"
+                        self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                        print "start core"
+                        self.network.start_core()
 
-            tps_sets_sets.append(tps_sets)
+                        time.sleep(10)
+                        print "start clients"
+                        self.start_clients()
+                        time.sleep(10)
+                        print "start simulation"
+                        #dumper.simulation_batched(network, inputs_per_tx, outputs_per_tx, num_transactions=None, batch_size=4000, batch_sleep=1, input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
 
-        self.outfh.write(json.dumps(tps_sets_sets))
+                        dumper.simulation_batched(self.network,num_transactions, 2, 2, shardListPath, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
+                        print "simulation done"
+                        time.sleep(20)
+                        print "stop clients"
+                        self.stop_clients()
+
+                        tps_set = self.network.get_tpsm_set()
+                        tps_set_avg = sum(tps_set) / len(tps_set)
+                        #print "Avg set "+str(tps_set_avg)
+                        tps_sets.append(tps_set_avg)
+
+                        latency_times = self.network.get_latency()
+                        latency_times_avg = sum(latency_times) / len(latency_times)
+                        #print "Latency: {0}".format(latency_times)
+                        latency_times_sets.append(latency_times_avg)
+
+                        #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
+                        #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, latency_times_set)
+                    except Exception:
+                        traceback.print_exc()
+                    finally:
+                        try:
+                            self.network.stop_core()
+                            time.sleep(2)
+                            self.network.clean_state_core(SHARD)
+                        except:
+                            # reset connection
+                            for i in range(5):
+                                try:
+                                    self.network.ssh_close()
+                                    self.network.ssh_connect()
+                                    self.network.stop_core()
+                                    time.sleep(2)
+                                    self.network.clean_state_core(SHARD)
+                                    break
+                                except:
+                                    time.sleep(5)
+
+            tps_sets_avg = sum(tps_sets) / len(tps_sets)
+            tps_sets_sets.append(tps_sets_avg)
+            latency_times_sets_avg = sum(latency_times_sets) / len(latency_times_sets)
+            latency_times_sets_sets.append(latency_times_sets_avg)
+
+        for x in tps_sets_sets:
+            print "TPS "+str(x)
+
+        self.tpsfh.write(json.dumps(tps_sets_sets))
+        self.latfh.write(json.dumps(latency_times_sets_sets))
         return tps_sets_sets
 
 if __name__ == '__main__':
@@ -489,12 +511,16 @@ if __name__ == '__main__':
 
 
     elif sys.argv[1] == 'sergi':
-        num_shards = int(sys.argv[2])
-        mode = int(sys.argv[3])
-        runs = int(sys.argv[4])
-        outfile = sys.argv[5]
-
+        min_validators = int(sys.argv[2])
+        max_validators = int(sys.argv[3])
+        num_transactions = int(sys.argv[4])
+        num_shards = int(sys.argv[5])
+        mode = int(sys.argv[6])
+        runs = int(sys.argv[7])
+        shardListPath = sys.argv[8]
+        tpsfile = sys.argv[9]
+        latfile = sys.argv[10]
         n = ChainspaceNetwork(0)
-        t = Tester(n, outfile=outfile)
+        t = Tester(n, tpsfile=tpsfile,latencyfile=latfile)
 
-        print t.measure_sergi(num_shards, runs, mode)
+        print t.measure_sergi(min_validators, max_validators, num_transactions, num_shards, runs, mode,shardListPath)
