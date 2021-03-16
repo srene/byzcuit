@@ -1,7 +1,7 @@
 
 # How to create a Chainspace testbed using AWS EC2 instances
 
-## Create AWS EC2 instances and install chainspace 
+## Creating AWS EC2 instances and installing Chainspace 
 
 Clone github repository
 ```shell
@@ -45,7 +45,7 @@ Stop instances
 $ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n = ChainspaceNetwork(0); n.stop(0); n.stop(1);’
 ```
 
-## Run transactions on the testbed
+## Running transactions on the testbed
 
 To run transactions on the running tesbed the following command should be used. This command will generate transactions with objects from the shards indicated in the file 
 
