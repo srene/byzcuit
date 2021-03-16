@@ -59,6 +59,6 @@ where the arguments should be:
 * arg3: Number of transactions generated.
 * arg4: Number of shards in the testbed.
 * arg5: Number of runs of the evaluation.
-* arg6: Shard list input file. This file should indicate to which shard each of the object of the transactions belongs separated by ','. This is an [example](https://github.com/srene/byzcuit/blob/master/chainspacemeasurements/chainspacemeasurements/shards.txt). By default there are two input objects per transaction. This can be modified [here](https://github.com/srene/byzcuit/blob/79dc906b79c4b371b342760d6dc6a9ee540fc673/chainspacemeasurements/chainspacemeasurements/tester.py#L330).
+* arg6: Shard list input file. This file should indicate to which shard each of the object of the transactions belongs separated by ','. This is an [example](https://github.com/srene/byzcuit/blob/master/chainspacemeasurements/chainspacemeasurements/shards.txt) for a test with 12000 transactions and two shards. By default there are two input objects per transaction. This can be modified [here](https://github.com/srene/byzcuit/blob/79dc906b79c4b371b342760d6dc6a9ee540fc673/chainspacemeasurements/chainspacemeasurements/tester.py#L330).
 * arg7: This is the output file where the TPS will be logged.
 * arg8: This is the output file where the latencies measured in the clients will be logged.
