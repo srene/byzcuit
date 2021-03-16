@@ -175,6 +175,7 @@ class ChainspaceNetwork(object):
         self._log("Initiating SSH connection on all nodes...")
         args = [(self._single_ssh_connect, instance) for instance in self._get_running_instances(type)]
         pool = Pool(ChainspaceNetwork.threads)
+
         pool.map(_multi_args_wrapper, args)
         pool.close()
         pool.join()

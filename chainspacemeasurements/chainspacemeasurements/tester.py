@@ -510,17 +510,16 @@ if __name__ == '__main__':
         print t.measure_bano(num_shards, runs)
 
 
-    elif sys.argv[1] == 'sergi':
+    elif sys.argv[1] == 'sharding_measurements':
         min_validators = int(sys.argv[2])
         max_validators = int(sys.argv[3])
         num_transactions = int(sys.argv[4])
         num_shards = int(sys.argv[5])
-        mode = int(sys.argv[6])
-        runs = int(sys.argv[7])
-        shardListPath = sys.argv[8]
-        tpsfile = sys.argv[9]
-        latfile = sys.argv[10]
+        runs = int(sys.argv[6])
+        shardListPath = sys.argv[7]
+        tpsfile = sys.argv[8]
+        latfile = sys.argv[9]
         n = ChainspaceNetwork(0)
         t = Tester(n, tpsfile=tpsfile,latencyfile=latfile)
 
-        print t.measure_sergi(min_validators, max_validators, num_transactions, num_shards, runs, mode,shardListPath)
+        print t.measure_sergi(min_validators, max_validators, num_transactions, num_shards, runs, 4,shardListPath)
