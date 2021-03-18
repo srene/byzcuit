@@ -21,20 +21,12 @@ $ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n =
 ```
 Note that is necessary to generate a keypair pem file to access the EC2 instances. The pem file can be generated first logging in AWS-cli and using the [keypair.py](https://github.com/srene/byzcuit/blob/master/chainspacemeasurements/chainspacemeasurements/keypair.py) script. The file should be named `ec2-keypair.pem`.
 
-Initiate SSH on EC2 instances
+
+Install chainspace on EC2 instances
 ```shell
-$ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n = ChainspaceNetwork(0); n.ssh_connect(0); n.ssh_connect(1);’
+$ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n = ChainspaceNetwork(0); n.ssh_connect(0); n.ssh_connect(1); n.install_deps(0); n.install_deps(1); n.install_core(0); n.install_core(1);’
 ```
 
-Install depencencies on EC2 instances
-```shell
-$ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n = ChainspaceNetwork(0); n.install_deps(0); n.install_deps(1);’
-```
-
-Install chainspace
-```shell
-$ python -c 'from chainspacemeasurements.instances import ChainspaceNetwork; n = ChainspaceNetwork(0); n.install_core(0); n.install_core(1);’
-```
 Optional:
 
 Start instances
