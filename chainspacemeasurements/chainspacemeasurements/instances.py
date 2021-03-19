@@ -309,10 +309,10 @@ class ChainspaceNetwork(object):
 
     def config_clients(self, clients):
         instances = [instance for instance in self._get_running_instances(CLIENT)]
-        shuffled_instances = random.sample(instances, clients)
-
         if clients > len(instances):
             raise ValueError("Number of total nodes exceeds the number of running instances.")
+
+        shuffled_instances = random.sample(instances, clients)
 
         self.clients = []
         for client in range(clients):

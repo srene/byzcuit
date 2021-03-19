@@ -300,7 +300,7 @@ class Tester(object):
         self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_sergi(self, min_validators, max_validators,num_transactions, num_shards, runs, mode,shardListPath):
+    def measure_sharding(self, min_validators, max_validators,num_transactions, num_shards, runs, mode,shardListPath):
 
         tps_sets_sets = []
         latency_times_sets_sets = []
@@ -522,4 +522,4 @@ if __name__ == '__main__':
         n = ChainspaceNetwork(0)
         t = Tester(n, tpsfile=tpsfile,latencyfile=latfile)
 
-        print t.measure_sergi(min_validators, max_validators, num_transactions, num_shards, runs, 4,shardListPath)
+        print t.measure_sharding(min_validators, max_validators, num_transactions, num_shards, runs, 4,shardListPath)
