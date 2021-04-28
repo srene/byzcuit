@@ -15,7 +15,7 @@ import sys
 numObjects=2000
 
 # FIXME: How many shards
-numShards=2
+numShards=5
 
 # FIXME: Path where to write the output files
 path = "/Users/srene/workspace/byzcuit/chainspacecore/ChainSpaceConfig/"

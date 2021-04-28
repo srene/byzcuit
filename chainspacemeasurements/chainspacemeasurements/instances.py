@@ -345,7 +345,7 @@ class ChainspaceNetwork(object):
         create_dummy_objects = str(int(create_dummy_objects))
         num_dummy_objects = str(int(num_dummy_objects))
         output_object_mode = str(int(output_object_mode))
-        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + num_transactions + ' ' + num_inputs + ' ' + num_outputs + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' + input_object_mode + ' ' + create_dummy_objects + ' ' + num_dummy_objects + ' ' + output_object_mode+' '+shardListPath)
+        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' +shardListPath)
 
         transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
         transactions_per_client = len(transactions) / len(self.clients)

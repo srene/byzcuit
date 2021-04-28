@@ -13,15 +13,6 @@ import sys
 # FIXME: How many shards
 numShards=2
 
-# FIXME: How many transactions
-numTransactions=1000
-
-# FIXME: How many inputs per transaction
-numInputs=2
-
-# FIXME: How many outputs per transaction
-numOutputs=2
-
 # FIXME: Path where to write the output files
 path = "/Users/srene/workspace/byzcuit/chainspacecore/ChainSpaceClientConfig/"
 
@@ -42,21 +33,6 @@ transactionIDCounter=1
 # unused (=active) object in this shard
 inputObjectCounter = []
 
-# Mode 0: means that input objects will be chosen from random shards
-# Mode 1: means that input objects will be sequentially chosen from shards in round robin
-# Mode 2: means that input objects will be sequentially chosen from the same shards
-# Mode 3: means that input objects will be sequentially chosen from different shards
-# Mode 4: means that input objects will be sequentially chosen from the shard in the list
-inputObjectMode = 2
-
-
-# Mode 0: means that output objects will be chosen from random shards
-# Mode 1: means that output objects will be sequentially chosen from shards in round robin
-# Mode 2: means that output objects will be sequentially chosen from the same shards
-# Mode 3: means that output objects will be sequentially chosen from different shards
-# Mode 4: means that input objects will be sequentially chosen from the shard in the list
-# Mode -1: means that numDummyObjects (= non-input shards) will be added to transaction; (assuming createDummyObjects = 1)
-outputObjectMode = 2
 
 # Used in getNextShard to get shards sequentially
 nextShardCounter = 1
@@ -71,7 +47,7 @@ createDummyObjects = 0
 # How many dummy objects to add (assuming outputObjectMode has been set to -1)
 # a positive integer X means add 0 to X dummy objects, depending on the number of non-input shards
 # -1 means will add as many dummy objects as there are non-input shards
-numDummyObjects = 2
+numDummyObjects = 0
 
 
 inputshardindex = 0
@@ -82,28 +58,21 @@ inputShardFromFile = []
 
 # outputShardFromFile = []
 
-def config(newNumShards, newNumTransactions, newNumInputs, newNumOutputs, newPath, newInputObjectMode, newCreateDummyObjects, newNumDummyObjects, newOutputObjectMode, newShardListPath):
+def config(newNumShards, newPath, newShardListPath):
 	global numShards
-	global numTransactions
-	global numInputs
-	global numOutputs
+#	global numTransactions
+#	global numInputs
+#	global numOutputs
 	global path
-	global inputObjectMode
-	global createDummyObjects
-	global numDummyObjects
-	global outputObjectMode
+#	global inputObjectMode
+#	global createDummyObjects
+#	global numDummyObjects
+#	global outputObjectMode
 	global shardListPath
 	numShards = newNumShards
-	numTransactions = newNumTransactions
-	numInputs = newNumInputs
-	numOutputs = newNumOutputs
 	path = newPath
-	inputObjectMode = newInputObjectMode
-	createDummyObjects = newCreateDummyObjects
-	numDummyObjects = newNumDummyObjects
-	outputObjectMode = newOutputObjectMode
 	shardListPath = newShardListPath
-	
+
 def initAllShards():
 	global numShards
 	for i in range(0,numShards):
@@ -150,47 +119,17 @@ def getNextTransactionID():
 	transactionIDCounter += 1
 	return nextID
 
-def mapObjectToShard(theObject):
-	# This is how Byzcuit maps objects to shards
-	return theObject % numShards
-
-def getRandomShard():
-	return random.randint(0,numShards-1)
-
-def getSameShard(shardID):
-	return shardID
-
-def getDifferentShard(shardID):
-
-	while True:
-		othershard = random.randint(0,numShards-1)
-		if(othershard != shardID):
-			break
-	return othershard
-
-def getNextShard():
-	global nextShardCounter
-	global numShards
-	nextShard = nextShardCounter % numShards
-	nextShardCounter += 1
-	return nextShard
-
-def getInputShardFromFile():
-	global inputshardindex
-	shard = inputShardFromFile[inputshardindex]
-	#print "input "+str(shard)+" "+str(inputshardindex)
-	inputshardindex += 1
-	return shard
-
-def getOutputShardFromFile(inList):
-	if inList[0] == inList[1]:
-		return int(inList[0])
-	else:
-		return int(random.choice(inList))
+def getInputsFromLine(line):
+	data = line.strip().replace("[","")
+	data = data.replace("]","")
+	data = data.replace(" ","")
+	return data.split(",")
 
 def genTransactionFile():
 	# Initialise the set of all shard IDs
-	print path+" "+str(numTransactions)+" "+str(numInputs)+" "+str(numOutputs)
+
+#	numTransactions = len(open(shardListPath).readlines())
+#	print shardListPath+" "+str(numTransactions) #+" "+str(numInputs)+" "+str(numOutputs)
 	initAllShards()
 
 	# Initialise input and output object counters
@@ -200,14 +139,13 @@ def genTransactionFile():
 	inputShards = set()
 	outputShards = set()
 
-
-	if inputObjectMode == 4:
-		with open(shardListPath, "r") as filestream:
-			for line in filestream:
-				currentline = line.split(",")
-				inputShardFromFile.append(int(currentline[0]))
-				inputShardFromFile.append(int(currentline[1]))
+	#with open(shardListPath, "r") as filestream:
+	#	for line in filestream:
+	#		currentline = line.split(",")
+	#		inputShardFromFile.append(int(currentline[0]))
+	#		inputShardFromFile.append(int(currentline[1]))
 				#print "len "+str(len(inputShardFromFile))
+
 
 	# Create / open file to write
 	#if outputObjectMode == 2:
@@ -230,10 +168,20 @@ def genTransactionFile():
 	for i in range(numShards):
 		transactionxshardCounter[i] = 0
 
-	for i in range(numTransactions):
+	Lines = open(shardListPath).readlines()
 
+	numTransactions = len(Lines)
+	#for i in range(numTransactions):
+	for line in Lines:
 		transactionID = getNextTransactionID()
+		inline = line.split(":")
+		print(inline[0])
+		inshardsfromfile = getInputsFromLine(inline[0])
+		outshardsfromfile = getInputsFromLine(inline[1])
 
+		numInputs = len(inshardsfromfile)
+		numOutputs = len(outshardsfromfile)
+#		readLine()
 		# Generate inputs (chosen from random shards)
 		inputs = ""
 		ins=[]
@@ -243,24 +191,7 @@ def genTransactionFile():
 			if j == numInputs-1:
 				delimiter = ""
 
-			if inputObjectMode == 0:
-				inputShard = getRandomShard()
-			elif inputObjectMode == 2:
-				if j != 0:
-					inputShard = getSameShard(lastShard)
-				else:
-					inputShard = getRandomShard()
-			elif inputObjectMode == 3:
-				if j != 0:
-					inputShard = getDifferentShard(lastShard)
-				else:
-					inputShard = getRandomShard()
-
-			elif inputObjectMode == 4:
-				inputShard = getInputShardFromFile()
-				ins.append(inputShard)
-			else:
-				inputShard = getNextShard()
+			inputShard = int(inshardsfromfile[j])
 
 			inputs = inputs + str(getNextInputObject(inputShard)) + delimiter
 			inputShards.add(inputShard)
@@ -273,88 +204,21 @@ def genTransactionFile():
 
 		transactionxshardCounter[inputShard] = transactionxshardCounter[inputShard] +  1
 
-		if outputObjectMode != -1: # generate output objects randomly or sequentially
+		for j in range(numOutputs):
+			delimiter = ";"
+			#don't put delimiter after the last output
+			if j == numOutputs-1:
+				delimiter = ""
 
-			for j in range(numOutputs):
-				delimiter = ";"
-				#don't put delimiter after the last output
-				if j == numOutputs-1:
-					delimiter = ""
+			strOutput = ""
 
-				strOutput = ""
+            		# 0 for random output selection, and 1 for sequential
+			outputShard = int(outshardsfromfile[j])
+			strOutput = str(getNextOutputObject(outputShard))
 
-                		# 0 for random output selection, and 1 for sequential
-				if outputObjectMode == 0:
-					outputShard = getRandomShard()
-					strOutput = str(getNextOutputObject(outputShard))
-				elif outputObjectMode == 2:
-					outputShard = getSameShard(inputShard)
-					strOutput = str(getNextOutputObject(outputShard))
-				elif outputObjectMode == 3:
-					outputShard = getDifferentShard(inputShard)
-					strOutput = str(getNextOutputObject(outputShard))
-				elif outputObjectMode == 4:
-					outputShard = getOutputShardFromFile(ins)
-					strOutput = str(getNextOutputObject(outputShard))
-				else:
-					theObject = getNextOutputObjectSequential()
-					strOutput = str(theObject)
-					outputShard = mapObjectToShard(theObject)
+			outputShards.add(outputShard)
+			outputs = outputs + strOutput + delimiter
 
-				outputShards.add(outputShard)
-				outputs = outputs + strOutput + delimiter
-
-                	if createDummyObjects == 1:
-                    		outputOnlyShards = outputShards - inputShards # shards that only occur in output
-
-                    		# Include dummy objects from all the outputOnly shards
-                    		counter = 0
-                    		for eachShard in outputOnlyShards: # add dummy objects to inputs for output-only shards
-                        		counter += 1
-                        		inputObject = getNextInputObject(eachShard)
-                        		inputs = inputs + ";" + str(inputObject)
-
-                # Bano: This is old code that used to sequentially pick outputs from shards
-		#	for k in range(numOutputs):
-		#		delimiter = ";"
-		#		# don't put delimiter after the last output
-		#		if k == numOutputs-1:
-		#			delimiter = ""
-                #
-		#		outputs = outputs + str(getNextOutputObjectSequential()) + delimiter
-            	#
-		#	endOfLine = "\n"
-		#	if i == numTransactions-1:
-		#		endOfLine = ""
-            	#
-		#	line = str(transactionID) + "\t" + inputs + "\t" + outputs + endOfLine
-
-		# add all or up to numDummyObjects non-input shards to the output
-		else: #createDummyObjects is implicitly assumed to be true in this case
-			nonInputShards = allShards - inputShards
-
-			# Include dummy objects from all the non-input shards
-			counter = 0
-
-			l_nonInputShards = list(nonInputShards)
-			random.shuffle(l_nonInputShards) # randomize the order of shards
-
-			for eachShard in l_nonInputShards:
-				counter += 1
-
-				outputObject = getNextOutputObject(eachShard)
-
-				inputObject = getNextInputObject(eachShard)
-				inputs = inputs + ";" + str(inputObject)
-
-				delimiter = ";"
-				# don't put delimiter after the last output
-				if counter == len(nonInputShards):
-					delimiter = ""
-				outputs = outputs + str(outputObject) + delimiter
-
-				if counter == numDummyObjects:
-					break
 
 		endOfLine = "\n"
 		if i == numTransactions-1:
@@ -377,5 +241,5 @@ def genTransactionFile():
 # =============
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
-		config(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], int(sys.argv[6]), int(sys.argv[7]), int(sys.argv[8]), int(sys.argv[9]), sys.argv[10])
+		config(int(sys.argv[1]), sys.argv[2], sys.argv[3] )
 	genTransactionFile()
