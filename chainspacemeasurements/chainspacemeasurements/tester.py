@@ -8,7 +8,7 @@ import json
 from chainspacemeasurements import dumper
 from chainspacemeasurements.instances import ChainspaceNetwork, SHARD
 from chainspacemeasurements.dumpparser import parse_tcpdump
-
+from os import walk
 
 def parse_client_simplelog(filename):
     data = open(filename).readlines()[2:]
@@ -300,7 +300,7 @@ class Tester(object):
         self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-    def measure_sharding(self, min_validators, max_validators,num_transactions, num_shards, runs, mode,shardListPath):
+    def measure_sharding(self, min_validators, max_validators, num_shards, runs,shardListPath):
 
         tps_sets_sets = []
         latency_times_sets_sets = []
@@ -325,9 +325,10 @@ class Tester(object):
                         self.start_clients()
                         time.sleep(10)
                         print "start simulation"
-                        #dumper.simulation_batched(network, inputs_per_tx, outputs_per_tx, num_transactions=None, batch_size=4000, batch_sleep=1, input_object_mode=0, create_dummy_objects=0, num_dummy_objects=0, output_object_mode=0):
 
-                        dumper.simulation_batched(self.network,num_transactions, 2, 2, shardListPath, input_object_mode=mode,create_dummy_objects=0, output_object_mode=mode)
+                        for r,d,f in walk (shardListPath):
+                            for file in f:
+                                dumper.simulation_batched(self.network,len(open(shardListPath+file).readlines()), shardListPath+file)
                         print "simulation done"
                         time.sleep(20)
                         print "stop clients"
@@ -513,13 +514,13 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'sharding_measurements':
         min_validators = int(sys.argv[2])
         max_validators = int(sys.argv[3])
-        num_transactions = int(sys.argv[4])
-        num_shards = int(sys.argv[5])
-        runs = int(sys.argv[6])
-        shardListPath = sys.argv[7]
-        tpsfile = sys.argv[8]
-        latfile = sys.argv[9]
+#        num_transactions = int(sys.argv[4])
+        num_shards = int(sys.argv[4])
+        runs = int(sys.argv[5])
+        shardListPath = sys.argv[6]
+        tpsfile = sys.argv[7]
+        latfile = sys.argv[8]
         n = ChainspaceNetwork(0)
         t = Tester(n, tpsfile=tpsfile,latencyfile=latfile)
 
-        print t.measure_sharding(min_validators, max_validators, num_transactions, num_shards, runs, 4,shardListPath)
+        print t.measure_sharding(min_validators, max_validators, num_shards, runs, shardListPath)
