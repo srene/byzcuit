@@ -17,7 +17,7 @@ CLIENT = 1
 
 
 class ChainspaceNetwork(object):
-    threads = 100
+    threads = 1000
     aws_api_threads = 5
 
     def __init__(self, network_id, aws_region='eu-west-2'):
@@ -339,8 +339,6 @@ class ChainspaceNetwork(object):
         print "Prepare transactions "+str(num_transactions)+" "+directory
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
-        num_inputs = str(int(num_inputs))
-    
         os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' +shardListPath)
 
         transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
