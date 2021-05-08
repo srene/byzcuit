@@ -9,6 +9,6 @@ def simulation_batched(network, num_transactions, shardListPath, batch_size=4000
     network.load_objects()
     time.sleep(5)
 
-    print num_transactions+" "+shardListPath
+#    print num_transactions+" "+shardListPath
     network.prepare_transactions(num_transactions, shardListPath)
     network.send_transactions(batch_size / (len(network.clients) / len(network.shards)), batch_sleep)
