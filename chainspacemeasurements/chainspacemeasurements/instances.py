@@ -335,11 +335,11 @@ class ChainspaceNetwork(object):
         self.ssh_exec(command, CLIENT)
         self._log("Stopping all Chainspace clients.")
 
-    def prepare_transactions(self, num_transactions, shardListPath, directory='/Users/srene/workspace/byzcuit'):
+    def prepare_transactions(self, num_transactions, shardListPath, directory='/home/sergi/workspace/byzcuit'):
         print "Prepare transactions "+str(num_transactions)+" "+directory
         num_shards = str(len(self.shards))
         num_transactions = str(int(num_transactions))
-        os.system('python ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' +shardListPath)
+        os.system('python2 ' + directory + '/contrib/core-tools/generate_transactions.py' + ' ' + num_shards + ' ' + directory + '/chainspacecore/ChainSpaceClientConfig/' + ' ' +shardListPath)
 
         transactions = open(directory + '/chainspacecore/ChainSpaceClientConfig/test_transactions.txt').read().splitlines()
         transactions_per_client = len(transactions) / len(self.clients)
