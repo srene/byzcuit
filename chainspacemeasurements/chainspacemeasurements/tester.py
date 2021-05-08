@@ -342,8 +342,8 @@ class Tester(object):
                     print "stop clients"
                     self.stop_clients()
 
-    #                log = self.network.get_r0_logs()
-    #                print log
+                    log = self.network.get_r0_logs_count()
+                    print log
                     tps_set = self.network.get_tpsm_set()
                     tps_set_avg = sum(tps_set) / len(tps_set)
                     #print "Avg set "+str(tps_set_avg)

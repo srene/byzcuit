@@ -398,6 +398,15 @@ class ChainspaceNetwork(object):
 
         return logs
 
+    def get_r0_logs_count(self):
+        logs = []
+        for shard in self.shards.itervalues():
+            instance = shard[0]
+            log = self._single_ssh_exec(instance, 'cat simplelog | wc -l')[1]
+            logs.append(log)
+
+        return logs
+
     def get_latency(self):
         latencies = []
         for instance in self.clients:
