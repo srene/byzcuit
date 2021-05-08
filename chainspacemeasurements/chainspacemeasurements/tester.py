@@ -316,76 +316,76 @@ class Tester(object):
 #            for i in range(runs):
             file_list = os.listdir(shardListPath)
 #            for r,d,f in walk (shardListPath):
-            for file in sorted(file_list):
-                try:
-    #                    print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
-    #                self.network.ssh_connect(0)
-    #                self.network.ssh_connect(1)
-                    print "config core"
-                    self.network.config_core(num_shards, validators)
-                    print "config me"
-                    self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
-                    print "start core"
-                    self.network.start_core()
+            try:
+#                    print "Running measurements for {2} dummy objects across {0} shards (run {1}).".format(num_shards, i, num_dummies)
+#                self.network.ssh_connect(0)
+#                self.network.ssh_connect(1)
+                print "config core"
+                self.network.config_core(num_shards, validators)
+                print "config me"
+                self.network.config_me(self.core_directory + '/ChainSpaceClientConfig')
+                print "start core"
+                self.network.start_core()
 
-    #                time.sleep(10)
-                    print "start clients"
-                    self.start_clients()
-                    time.sleep(10)
-                    print "start simulation"
-    #                print shardListPath+"/"+file
-    #                print len(open(shardListPath+"/"+file).readlines())
-    #                dumper.simulation_batched(self.network,len(open(shardListPath).readlines()),shardListPath)
+#                time.sleep(10)
+                print "start clients"
+                self.start_clients()
+                time.sleep(10)
+                print "start simulation"
+#                print shardListPath+"/"+file
+#                print len(open(shardListPath+"/"+file).readlines())
+#                dumper.simulation_batched(self.network,len(open(shardListPath).readlines()),shardListPath)
+                for file in sorted(file_list):
                     dumper.simulation_batched(self.network,len(open(shardListPath+"/"+file).readlines()), shardListPath+"/"+file)
-                    print "simulation done"
-                    time.sleep(40)
-                    print "stop clients"
-                    self.stop_clients()
+                    time.sleep(20)
+                print "simulation done"
+                print "stop clients"
+                self.stop_clients()
 
-                    log = self.network.get_r0_logs_count()
-                    print log
-                    tps_set = self.network.get_tpsm_set()
-                    tps_set_avg = sum(tps_set) / len(tps_set)
-                    #print "Avg set "+str(tps_set_avg)
-                    tps_sets.append(tps_set_avg)
+                #log = self.network.get_r0_logs_count()
+                #print log
+                tps_set = self.network.get_tpsm_set()
+                tps_set_avg = sum(tps_set) / len(tps_set)
+                #print "Avg set "+str(tps_set_avg)
+                tps_sets.append(tps_set_avg)
 
-                    latency_times = self.network.get_latency()
-                    latency_times_avg = sum(latency_times) / len(latency_times)
-                    #print "Latency: {0}".format(latency_times)
-                    latency_times_sets.append(latency_times_avg)
+                latency_times = self.network.get_latency()
+                latency_times_avg = sum(latency_times) / len(latency_times)
+                #print "Latency: {0}".format(latency_times)
+                latency_times_sets.append(latency_times_avg)
 
-                    #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
-                    #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, latency_times_set)
-                except Exception:
-                    traceback.print_exc()
-                finally:
+                #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, tps_set)
+                #print "Result for {0} dummy objects (run {1}): {2}".format(num_dummies, i, latency_times_set)
+            except Exception:
+                traceback.print_exc()
+            finally:
+                try:
+                    self.network.stop_core()
+                    time.sleep(2)
+                    self.network.clean_state_core(SHARD)
+                    self.network.ssh_close(0)
+                    self.network.ssh_close(1)
+#                    time.sleep(10)
+                except:
+                    # reset connection
+#                            for i in range(5):
                     try:
+                        self.network.ssh_close()
+                        self.network.ssh_connect()
                         self.network.stop_core()
                         time.sleep(2)
                         self.network.clean_state_core(SHARD)
-                        self.network.ssh_close(0)
-                        self.network.ssh_close(1)
-    #                    time.sleep(10)
+                        break
                     except:
-                        # reset connection
-    #                            for i in range(5):
-                        try:
-                            self.network.ssh_close()
-                            self.network.ssh_connect()
-                            self.network.stop_core()
-                            time.sleep(2)
-                            self.network.clean_state_core(SHARD)
-                            break
-                        except:
-                            time.sleep(5)
+                        time.sleep(5)
 
-                tps_sets_avg = sum(tps_sets) / len(tps_sets)
-                tps_sets_sets.append(tps_sets_avg)
-                latency_times_sets_avg = sum(latency_times_sets) / len(latency_times_sets)
-                latency_times_sets_sets.append(latency_times_sets_avg)
+            tps_sets_avg = sum(tps_sets) / len(tps_sets)
+            tps_sets_sets.append(tps_sets_avg)
+            latency_times_sets_avg = sum(latency_times_sets) / len(latency_times_sets)
+            latency_times_sets_sets.append(latency_times_sets_avg)
 
-                for x in tps_sets_sets:
-                    print "TPS "+str(x)
+            for x in tps_sets_sets:
+                print "TPS "+str(x)
 
         self.tpsfh.write(json.dumps(tps_sets_sets))
         self.latfh.write(json.dumps(latency_times_sets_sets))
