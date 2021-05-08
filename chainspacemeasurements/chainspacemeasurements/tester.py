@@ -333,8 +333,8 @@ class Tester(object):
                 self.start_clients()
                 time.sleep(10)
                 print "start simulation"
-                print shardListPath+"/"+file
-                print len(open(shardListPath+"/"+file).readlines())
+#                print shardListPath+"/"+file
+#                print len(open(shardListPath+"/"+file).readlines())
                 dumper.simulation_batched(self.network,len(open(shardListPath).readlines()),shardListPath)
 #                dumper.simulation_batched(self.network,len(open(shardListPath+"/"+file).readlines()), shardListPath+"/"+file)
                 print "simulation done"
