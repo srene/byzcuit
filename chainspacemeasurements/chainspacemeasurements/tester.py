@@ -303,7 +303,7 @@ class Tester(object):
         self.tpsfh.write(json.dumps(tps_sets_sets))
         return tps_sets_sets
 
-        def measure_sharding(self, min_validators, max_validators, num_shards, runs,shardListPath):
+    def measure_sharding(self, min_validators, max_validators, num_shards, runs,shardListPath):
 
         tps_sets_sets = []
         latency_times_sets_sets = []
